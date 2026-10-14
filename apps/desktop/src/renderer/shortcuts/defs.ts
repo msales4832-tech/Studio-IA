@@ -15,6 +15,8 @@ export type ActionId =
   | "undo"
   | "redo"
   | "togglePlay"
+  | "playForward"
+  | "pausePlayback"
   | "selectAll"
   | "deselectAll"
   | "deleteSelected"
@@ -143,6 +145,10 @@ export const ACTION_DEFS: Record<ActionId, ActionDef> = {
   // menubar trigger / toolbar button after a click — a Base UI trigger would
   // otherwise treat Space as "open the menu".
   togglePlay:      { defaultKeys: ["Space"],               labelKey: "actions.toggle_play", captureGlobal: true },
+  // Studio-IA: Premiere's L / K. Shuttle speeds and J (reverse) wait on a
+  // playback-rate clock the transport does not have yet.
+  playForward:     { defaultKeys: ["L"],                   labelKey: "actions.play_forward" },
+  pausePlayback:   { defaultKeys: ["K"],                   labelKey: "actions.pause_playback" },
   // Whole-selection commands, at the keys Premiere, Resolve and FCP all agree
   // on. Nothing else in this app claims `Mod+A`.
   //

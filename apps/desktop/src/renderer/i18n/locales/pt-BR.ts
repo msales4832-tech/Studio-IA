@@ -413,6 +413,8 @@ const ptBR: DeepPartial<Resources> = {
     create_checkpoint_hint:
       "Dá um nome ao estado atual para voltar a ele depois. Só nesta sessão — não é salvo com o projeto.",
     toggle_play: "Reproduzir / pausar",
+    play_forward: "Reproduzir",
+    pause_playback: "Pausar",
     select_all: "Selecionar todos os clipes",
     deselect_all: "Desmarcar tudo",
     delete_selected: "Excluir clipe selecionado",

@@ -761,6 +761,12 @@ export function App({ onCloseProject }: AppProps) {
     undo: () => run(projectUndo),
     redo: () => run(projectRedo),
     togglePlay,
+    playForward: () => {
+      if (!usePlaybackStore.getState().requestedPlaying) transportPlay();
+    },
+    pausePlayback: () => {
+      if (usePlaybackStore.getState().requestedPlaying) transportPause();
+    },
     deleteSelected,
     rippleDeleteSelected,
     copySelected,

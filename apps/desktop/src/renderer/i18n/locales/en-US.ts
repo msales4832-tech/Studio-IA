@@ -961,6 +961,8 @@ const enUS = {
     // panel for shortcuts that don't have a menu home (transport,
     // timeline edits).
     toggle_play: "Play / pause",
+    play_forward: "Play",
+    pause_playback: "Pause",
     // "clips" rather than "layers": the command is reached from the timeline,
     // where what the user sees selected is clips on tracks.
     select_all: "Select all clips",
