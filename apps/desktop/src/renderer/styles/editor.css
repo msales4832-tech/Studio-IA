@@ -2319,3 +2319,45 @@
   color: var(--muted-foreground);
   margin: 0;
 }
+
+/* ── Studio-IA: controles da máscara ───────────────────────────────────── */
+.studio-mask-controls {
+  display: flex;
+  flex-direction: column;
+  gap: calc(6 * var(--ui-px));
+  margin-bottom: calc(4 * var(--ui-px));
+}
+.studio-mask-shapes {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: calc(4 * var(--ui-px));
+}
+.studio-mask-shape,
+.studio-mask-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(5 * var(--ui-px));
+  padding: calc(5 * var(--ui-px));
+  font-size: var(--font-size-caption);
+  color: var(--muted-foreground);
+  background: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  cursor: pointer;
+}
+.studio-mask-shape:hover:not(:disabled),
+.studio-mask-action:hover:not(:disabled) {
+  color: var(--foreground);
+  background: var(--hover-neutral-strong);
+}
+.studio-mask-shape.is-active,
+.studio-mask-action.is-active {
+  color: var(--foreground);
+  border-color: var(--foreground);
+}
+.studio-mask-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: calc(4 * var(--ui-px));
+}

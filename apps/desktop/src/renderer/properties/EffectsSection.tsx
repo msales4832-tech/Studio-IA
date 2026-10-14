@@ -40,6 +40,7 @@ import {
 import { AudioRegionRow } from "./AudioRegionRow";
 import { EffectParamFields } from "./EffectParamField";
 import { EffectPicker } from "./EffectPicker";
+import { MASK_CONTROL_KEYS, MaskControls } from "./MaskControls";
 import { AppIcon } from "@/components/AppIcon";
 
 interface Props {
@@ -391,6 +392,9 @@ function EffectRow({
               </div>
             </div>
           ))}
+          {effect.kind === "mask" && (
+            <MaskControls layer={layer} effect={effect} onMutated={onMutated} />
+          )}
           <EffectParamFields
             layer={layer}
             effect={effect}
@@ -398,6 +402,7 @@ function EffectRow({
             tInLayerUs={tInLayerUs}
             playheadInSpan={playheadInSpan}
             onMutated={onMutated}
+            omit={effect.kind === "mask" ? MASK_CONTROL_KEYS : []}
           />
           {descriptor?.region && (
             <AudioRegionRow

@@ -1,4 +1,5 @@
 import { CropOverlayHost } from './CropOverlay';
+import { MaskOverlayHost } from './MaskOverlay';
 import { PreviewContextMenu } from './PreviewContextMenu';
 import { canEditCrop } from '../commands/cropCommands';
 import { canScaleLayer } from '../commands/scaleCommands';
@@ -178,6 +179,7 @@ export const PreviewSurface = forwardRef<PreviewSurfaceHandle, Props>(
         {visible && <SafeAreaGuidesHost />}
         {visible && <TransformGizmoHost />}
         {visible && <CropOverlayHost />}
+        {visible && <MaskOverlayHost />}
         {visible && <PreviewHandTool />}
         {visible && contextMenu && <PreviewContextMenu {...contextMenu} onClose={() => setContextMenu(null)} />}
       </div>

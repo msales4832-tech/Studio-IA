@@ -26,6 +26,7 @@ export function EffectParamFields({
   tInLayerUs,
   playheadInSpan,
   onMutated,
+  omit = [],
 }: {
   layer: LayerSummary;
   effect: EffectView;
@@ -33,6 +34,8 @@ export function EffectParamFields({
   tInLayerUs: number;
   playheadInSpan: boolean;
   onMutated: () => Promise<void>;
+  /// Studio-IA: params drawn by a kind-specific control instead (mask shape).
+  omit?: readonly string[];
 }) {
   if (!descriptor) return null;
   const regionKeys = descriptor.region
@@ -42,7 +45,7 @@ export function EffectParamFields({
   return (
     <>
       {Object.entries(descriptor.params)
-        .filter(([key]) => !regionKeys.includes(key))
+        .filter(([key]) => !regionKeys.includes(key) && !omit.includes(key))
         .map(([key, spec]) => (
           <EffectParamField
             key={key}

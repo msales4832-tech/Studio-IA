@@ -20,6 +20,7 @@
 // Spec: docs/features.md#on-canvas-transform-gizmo
 
 import { useCropEditingStore } from '../state/cropEditingStore';
+import { useMaskEditingStore } from "../state/maskEditingStore";
 import { useEffect, useRef } from "react";
 import { RotateCcwIcon } from "lucide-react";
 
@@ -267,6 +268,8 @@ function otherLayerBoxes(
 export function TransformGizmoHost() {
   const editingLayerId=usePathEditingStore(s=>s.layerId);
   const croppingId = useCropEditingStore(s => s.layerId);
+  // Studio-IA: com a máscara em edição na prévia, as alças são as dela.
+  const maskingId = useMaskEditingStore(s => s.layerId);
   const primaryLayerId = usePrimaryLayerId();
   // The FOCUSED composition: the selection is one of its layers, and the
   // inspector stays with the keyboard even when the preview is pointed
@@ -302,7 +305,7 @@ export function TransformGizmoHost() {
       if (layer.id === primaryLayerId) found = layer;
     }
   }
-  if (!found || !TRANSFORMABLE_KINDS.has(found.params.kind) || croppingId === found.id) return null;
+  if (!found || !TRANSFORMABLE_KINDS.has(found.params.kind) || croppingId === found.id || maskingId === found.id) return null;
   // Keyed on the layer id so switching selection remounts with fresh drag
   // state instead of carrying a half-finished gesture across layers.
   const path='position' in found.params&&found.params.position?.mode==='Path';
