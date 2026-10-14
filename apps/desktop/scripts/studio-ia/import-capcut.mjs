@@ -86,7 +86,7 @@ async function main() {
     console.log(`Projeto criado: ${opt.novo}`);
   }
 
-  const bound = { media: new Map(), track: new Map(), layer: new Map() };
+  const bound = { media: new Map(), info: new Map(), track: new Map(), layer: new Map() };
   let skipped = 0;
   let done = 0;
 
@@ -115,9 +115,18 @@ async function main() {
     if (step.tool === "import_media" && missing.has(step.bind.media)) { skipped++; continue; }
     let a;
     try { a = resolve(step.args); } catch (e) { if (e instanceof Skip) { skipped++; continue; } throw e; }
+    // CapCut source windows can overrun the probed media by a few ms; clamp
+    // to the real duration and shorten the clip by the same amount.
+    const info = step.args.media_id && bound.info.get(step.args.media_id.$media);
+    if (info && info.duration_us > 0 && info.kind !== "Image" && a.src_out_us > info.duration_us) {
+      const over = a.src_out_us - info.duration_us;
+      a.src_out_us = info.duration_us;
+      a.t_end_us -= over;
+    }
     try {
       const r = await call(step.tool, a);
       if (step.bind?.media) bound.media.set(step.bind.media, r.media_id);
+      if (step.bind?.media) bound.info.set(step.bind.media, { duration_us: r.duration_us, kind: r.kind });
       if (step.bind?.track !== undefined) bound.track.set(step.bind.track, r.track_id);
       if (step.bind?.layer !== undefined) bound.layer.set(step.bind.layer, layerIds(r));
       done++;
