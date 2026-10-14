@@ -695,6 +695,12 @@ export const Timeline = memo(function Timeline({
     () => zoomBySteps(-1, playheadClockUs(compositionId)),
     [compositionId, zoomBySteps],
   );
+  // Studio-IA: Premiere's `\`. More doublings than any zoom range holds;
+  // `steppedPxPerSec` parks at the fit-to-project stop, anchored at time 0.
+  const handleZoomTimelineFit = useCallback(
+    () => zoomBySteps(-64, 0),
+    [zoomBySteps],
+  );
 
   // `useShortcuts` binds one `window` listener per instance, so N mounted
   // timeline Panels are N listeners that all pass the same
@@ -728,6 +734,7 @@ export const Timeline = memo(function Timeline({
       resyncAudioToVideo: handleResyncAudioToVideo,
       zoomTimelineIn: handleZoomTimelineIn,
       zoomTimelineOut: handleZoomTimelineOut,
+      zoomTimelineFit: handleZoomTimelineFit,
     },
   });
 
@@ -812,6 +819,12 @@ export const Timeline = memo(function Timeline({
       actionId: "zoomTimelineOut",
       labelKey: ACTION_DEFS.zoomTimelineOut.labelKey,
       run: handleZoomTimelineOut,
+    },
+    {
+      id: "zoomTimelineFit",
+      actionId: "zoomTimelineFit",
+      labelKey: ACTION_DEFS.zoomTimelineFit.labelKey,
+      run: handleZoomTimelineFit,
     },
   ], { enabled: isFocusedTimeline });
 

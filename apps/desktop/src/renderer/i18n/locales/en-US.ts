@@ -996,6 +996,7 @@ const enUS = {
     apply_default_transition: "Apply default transition (crossfade)",
     zoom_timeline_in: "Zoom timeline in",
     zoom_timeline_out: "Zoom timeline out",
+    zoom_timeline_fit: "Fit timeline to window",
     focus_next_panel: "Focus next Panel",
     focus_previous_panel: "Focus previous Panel",
     toggle_maximize_panel: "Maximize / restore Panel",

@@ -36,6 +36,7 @@ export type ActionId =
   | "toggleTailSnap"
   | "zoomTimelineIn"
   | "zoomTimelineOut"
+  | "zoomTimelineFit"
   | "focusNextPanel"
   | "focusPreviousPanel"
   | "toggleMaximizePanel"
@@ -242,6 +243,8 @@ export const ACTION_DEFS: Record<ActionId, ActionDef> = {
   // Not `repeatable`: a held key would cross the whole range in a third of a
   // second. The wheel is the gesture for sweeping through scales.
   zoomTimelineIn:  { defaultKeys: ["="],                   labelKey: "actions.zoom_timeline_in" },
+  // Studio-IA: Premiere's `\` — zoom out until the whole project fits.
+  zoomTimelineFit: { defaultKeys: ["\\"],                  labelKey: "actions.zoom_timeline_fit" },
   zoomTimelineOut: { defaultKeys: ["-"],                   labelKey: "actions.zoom_timeline_out" },
   // The preview's one key: back to Fit, recentred — Resolve's `Z` on its
   // viewer, and the one preview-zoom operation worth a key, since every other

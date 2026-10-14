@@ -436,6 +436,7 @@ const ptBR: DeepPartial<Resources> = {
     apply_default_transition: "Aplicar transição padrão (dissolver)",
     zoom_timeline_in: "Aproximar timeline",
     zoom_timeline_out: "Afastar timeline",
+    zoom_timeline_fit: "Ajustar timeline à janela",
     focus_next_panel: "Ir para o próximo painel",
     focus_previous_panel: "Ir para o painel anterior",
     toggle_maximize_panel: "Maximizar / restaurar painel",

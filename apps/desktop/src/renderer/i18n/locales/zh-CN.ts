@@ -894,6 +894,7 @@ const zhCN: Resources = {
     apply_default_transition: "应用默认转场（交叉溶解）",
     zoom_timeline_in: "放大时间线",
     zoom_timeline_out: "缩小时间线",
+    zoom_timeline_fit: "时间线适合窗口",
     focus_next_panel: "聚焦下一个面板",
     focus_previous_panel: "聚焦上一个面板",
     toggle_maximize_panel: "最大化 / 还原面板",
