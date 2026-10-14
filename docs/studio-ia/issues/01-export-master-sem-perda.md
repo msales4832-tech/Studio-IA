@@ -1,6 +1,6 @@
 # 01 — Export master sem segunda geração de perda
 
-Status: aberto
+Status: resolvido (opção 1), aguardando teste com HEVC 10-bit real
 Fase: 2 (R4)
 
 ## Problema
@@ -26,3 +26,11 @@ Fontes que o WebCodecs decodifica (ex.: H.264 8-bit MP4 — o caso atual do usu�
 - Teste com fonte HEVC Main10: o export Master preserva 10-bit quando o codec de saída suporta.
 - Relatório SSIM/PSNR original × export ≥ limiar definido em `SPEC.md` (R4).
 - Nenhuma rota de export lê o quick proxy 720p (já garantido; manter teste).
+
+## Comments
+
+- 2026-10-14 — Opção 1 aplicada em `apps/desktop/src/renderer/render/exportDecodeRouting.ts`: no modo
+  `auto`, rotas `proxied` exportam pelo decodificador nativo lendo o original (como `native-sw`).
+  Sem o componente FFmpeg nativo, o comportamento antigo (master) continua como reserva.
+  A master ainda é gerada no import; desligar essa geração quando o nativo está disponível
+  economiza CPU e disco — próximo passo.

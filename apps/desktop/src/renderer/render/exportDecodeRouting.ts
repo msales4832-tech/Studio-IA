@@ -106,7 +106,13 @@ function routeFor(
   // ("native-sw"), not the gate's runtime probe: a source that fails its
   // probe on this machine is route-corrected to "proxied" by the readiness
   // gate (which runs after this resolve) and exports via proxy.
-  return m.decode_route.route === "native-sw"
+  //
+  // Studio-IA (SPEC R4, docs/studio-ia/issues/01): "proxied" sources (HEVC,
+  // VP9, 10-bit/HDR) also decode native on the original. Their full proxy is
+  // an 8-bit CRF 18 re-encode, so exporting from it is a second lossy
+  // generation; libavcodec opens these codecs, which is what the `ffmpeg` pin
+  // already relies on.
+  return m.decode_route.route === "native-sw" || m.decode_route.route === "proxied"
     ? { engine: "native", sourcePath: m.path }
     : { engine: "webcodecs" };
 }
