@@ -28,7 +28,6 @@ import {
   setPlaybackResolution,
   tailSnapEnabled,
   toggleSafeAreaGuides,
-  toggleTailSnap,
 } from "../settings/appSettingsStore";
 import { linkOverrideOn } from "../state/linkOverrideStore";
 import { focusedPlayheadUs } from "../state/playheadProjection";
@@ -176,10 +175,6 @@ const SELF_CONTAINED_COMMAND_IDS = [
   "toggleSafeAreaGuides",
   "centerHorizontally",
   "centerVertically",
-  // Clip snapping. No binding for the key-budget reason above — and because
-  // the magnet's home in every NLE is a toolbar button, which is exactly what
-  // being a no-binding command makes resolvable (`quickActions.ts`).
-  "toggleTailSnap",
   // Preview playback resolution, in two shapes because two surfaces want
   // different things. The three ABSOLUTE setters are what the search palette
   // needs: idempotent, individually nameable, and one step from any current
@@ -215,7 +210,6 @@ const SELF_CONTAINED_LABEL_KEYS: Record<SelfContainedCommandId, string> = {
   toggleSafeAreaGuides: "actions.toggle_safe_area_guides",
   centerHorizontally: "actions.center_horizontally",
   centerVertically: "actions.center_vertically",
-  toggleTailSnap: "actions.toggle_tail_snap",
   setPlaybackResolutionFull: "actions.playback_resolution_full",
   setPlaybackResolutionHalf: "actions.playback_resolution_half",
   setPlaybackResolutionQuarter: "actions.playback_resolution_quarter",
@@ -462,6 +456,8 @@ export function buildAppCommands(
     // Same live-read reason as `clearRange` below the flags: App does not
     // re-render on an app-settings flip, so a captured flag would freeze.
     toggleFollowPlayhead: () => followPlayheadEnabled(),
+    // Studio-IA: the magnet carries Premiere's `S` (`ACTION_DEFS`).
+    toggleTailSnap: () => tailSnapEnabled(),
     // Session store, same live-read rule: App never re-renders on the flip.
     toggleLinkOverride: () => linkOverrideOn(),
   };
@@ -547,10 +543,6 @@ export function buildAppCommands(
     centerVertically: {
       run: () => centerPrimaryLayer("y"),
       enabled: () => centerTarget() !== null,
-    },
-    toggleTailSnap: {
-      run: () => void toggleTailSnap(),
-      checked: () => tailSnapEnabled(),
     },
     // `checked`, not `enabled`: the current value is always re-selectable, and
     // a greyed-out "Full" would say the mode is unavailable rather than

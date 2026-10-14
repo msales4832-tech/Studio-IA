@@ -112,6 +112,7 @@ import {
   toggleDisplayMode,
   toggleFollowPlayhead,
   toggleMarkersVisible,
+  toggleTailSnap,
 } from "./settings/appSettingsStore";
 import { toggleLinkOverride } from "./state/linkOverrideStore";
 import {
@@ -788,6 +789,9 @@ export function App({ onCloseProject }: AppProps) {
     },
     toggleFollowPlayhead: () => {
       void toggleFollowPlayhead();
+    },
+    toggleTailSnap: () => {
+      void toggleTailSnap();
     },
     // Session switch, no IPC and no history row (`linkOverrideStore.ts`).
     toggleLinkOverride,

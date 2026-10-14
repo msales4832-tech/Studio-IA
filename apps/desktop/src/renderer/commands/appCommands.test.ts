@@ -35,7 +35,7 @@ const handlers: HandlerMap = {
   splitAtPlayhead: noop,
   importMedia: noop, export: noop,
   selectTool: noop, toggleBladeMode: noop, selectTextTool: noop, selectHandTool: noop, toggleLog: noop, focusLogSearch: noop,
-  toggleDisplayMode: noop,
+  toggleDisplayMode: noop, toggleTailSnap: noop,
   seekFrameBack: noop, seekFrameForward: noop, seekSecondBack: noop,
   seekSecondForward: noop, seekPrevEdit: noop, seekNextEdit: noop,
   seekStart: noop, seekEnd: noop,
@@ -119,7 +119,9 @@ describe("buildAppCommands", () => {
       const snap = buildAppCommands(handlers, menu, flags).find(
         (d) => d.id === "toggleTailSnap",
       )!;
-      expect(snap.actionId).toBeUndefined();
+      // Studio-IA: the magnet carries Premiere's `S`, so it is an ACTION_DEFS
+      // command now, still reading its check state live.
+      expect(snap.actionId).toBe("toggleTailSnap");
       expect(snap.checked!()).toBe(true);
       try {
         useAppSettingsStore.setState((s) => ({

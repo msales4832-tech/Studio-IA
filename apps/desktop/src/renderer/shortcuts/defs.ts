@@ -33,6 +33,7 @@ export type ActionId =
   | "focusLogSearch"
   | "toggleDisplayMode"
   | "toggleFollowPlayhead"
+  | "toggleTailSnap"
   | "zoomTimelineIn"
   | "zoomTimelineOut"
   | "focusNextPanel"
@@ -215,6 +216,9 @@ export const ACTION_DEFS: Record<ActionId, ActionDef> = {
   // hundreds of times a session, and this is a preference they flip when a
   // manual inspection needs the view to hold still.
   toggleFollowPlayhead: { defaultKeys: ["Shift+F"],        labelKey: "actions.toggle_follow_playhead" },
+  // Studio-IA: clip snapping on Premiere's bare `S`. Upstream leaves the magnet
+  // unbound; this fork follows Premiere's key map (docs/studio-ia/SPEC.md, R2).
+  toggleTailSnap:      { defaultKeys: ["S"],              labelKey: "actions.toggle_tail_snap" },
   // Timeline zoom, at the Premiere/FCP7 key positions. One press is one
   // doubling, anchored on the playhead (`timeline/zoom.ts`) — the wheel gesture
   // anchors the cursor, and a key press has no pointer to anchor.

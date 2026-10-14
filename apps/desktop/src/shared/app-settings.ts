@@ -206,7 +206,8 @@ export const APP_SETTINGS_DEFAULTS: AppSettings = {
   performance_calibration: null,
   performance_calibration_tier: 'standard',
   pause_presets: undefined,
-  display_mode: "AbRoll",
+  // Studio-IA: Premiere shows every track by default (SPEC R2).
+  display_mode: "AllTracks",
   delta_window_us: 10_000_000,
   tail_snap_enabled: true,
   tail_snap_strength_px: 12,
