@@ -28,15 +28,42 @@ function args(argv) {
   return out;
 }
 
-function readAuth() {
-  const appData = process.env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming");
-  const dirs = [process.env.WEFTCUT_USERDATA, path.join(appData, "WeftCut"), path.join(appData, "@weftcut", "desktop")];
-  for (const d of dirs) {
-    if (!d) continue;
-    const f = path.join(d, "mcp_auth.json");
-    if (fs.existsSync(f)) return JSON.parse(fs.readFileSync(f, "utf8"));
+/// The newest mcp_auth.json wins. Besides %APPDATA%\WeftCut, an editor
+/// started from an MSIX-packaged host (e.g. the Claude desktop terminal) has
+/// its Roaming folder redirected under %LOCALAPPDATA%\Packages\<pkg>\LocalCache.
+export function authCandidates(env = process.env) {
+  const appData = env.APPDATA ?? path.join(os.homedir(), "AppData", "Roaming");
+  const local = env.LOCALAPPDATA ?? path.join(os.homedir(), "AppData", "Local");
+  const dirs = [env.WEFTCUT_USERDATA, path.join(appData, "WeftCut"), path.join(appData, "@weftcut", "desktop")];
+  const pkgs = path.join(local, "Packages");
+  if (fs.existsSync(pkgs)) {
+    for (const p of fs.readdirSync(pkgs)) dirs.push(path.join(pkgs, p, "LocalCache", "Roaming", "WeftCut"));
   }
-  throw new Error("Editor nunca foi aberto neste PC (mcp_auth.json não encontrado). Abra o editor e tente de novo.");
+  return dirs.filter(Boolean).map((d) => path.join(d, "mcp_auth.json")).filter((f) => fs.existsSync(f));
+}
+
+function readAuths() {
+  const files = authCandidates().sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
+  if (files.length === 0) throw new Error("Editor nunca foi aberto neste PC (mcp_auth.json não encontrado). Abra o editor e tente de novo.");
+  return files.map((f) => JSON.parse(fs.readFileSync(f, "utf8")));
+}
+
+/// Tries every candidate endpoint, newest first: a stale file from another
+/// launch context points at a port nobody listens on.
+async function connect() {
+  let last;
+  for (const auth of readAuths()) {
+    const client = new Client({ name: "studio-ia-import-capcut", version: "0.1.0" });
+    try {
+      await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${auth.port}/mcp`), {
+        requestInit: { headers: { Authorization: `Bearer ${auth.token}` } },
+      }));
+      return client;
+    } catch (e) {
+      last = e;
+    }
+  }
+  throw new Error(`Não consegui conectar ao editor. Ele está aberto? (${last?.message ?? "sem detalhes"})`);
 }
 
 function payload(result) {
@@ -67,11 +94,7 @@ async function main() {
     return;
   }
 
-  const auth = readAuth();
-  const client = new Client({ name: "studio-ia-import-capcut", version: "0.1.0" });
-  await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${auth.port}/mcp`), {
-    requestInit: { headers: { Authorization: `Bearer ${auth.token}` } },
-  }));
+  const client = await connect();
 
   const call = async (name, a) => {
     const r = await client.callTool({ name, arguments: a });

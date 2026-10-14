@@ -12,6 +12,7 @@ import { BlurFilter, ColorMatrixFilter, type Filter } from "pixi.js";
 import type { AudioEffectRegion } from "../../../shared/audioEffects/catalog";
 import { ChromaKeyFilter, type ChromaParamName } from "./filters/ChromaKeyFilter";
 import { SharpenFilter } from "./filters/SharpenFilter";
+import { STUDIO_EFFECTS } from "./studioEffects";
 import {
   writeBrightness,
   writeContrast,
@@ -24,7 +25,7 @@ import {
 /// `audio` names the one group this registry does not populate: audio effects
 /// are offline bakes catalogued in `src/shared/audioEffects` (ADR 0063), and
 /// the picker groups both catalogs through this single order.
-export type EffectCategory = "blur" | "keying" | "color" | "stylize" | "audio";
+export type EffectCategory = "blur" | "keying" | "color" | "stylize" | "mask" | "3d" | "audio";
 
 /// Group order in the add picker. May name categories the catalog doesn't
 /// populate yet — empty groups are dropped at render.
@@ -33,6 +34,8 @@ export const EFFECT_CATEGORY_ORDER: EffectCategory[] = [
   "keying",
   "color",
   "stylize",
+  "mask",
+  "3d",
   "audio",
 ];
 
@@ -179,6 +182,8 @@ const REGISTRY: Record<string, EffectDescriptor> = {
     fidelity: "f16-verified",
     colorspace: "display-gamma",
   },
+  // Studio-IA: CapCut-style adjustments, masks and 3D (studioEffects.ts).
+  ...STUDIO_EFFECTS,
 };
 
 export function getDescriptor(kind: string): EffectDescriptor | null {

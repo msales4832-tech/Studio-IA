@@ -120,13 +120,23 @@ describe("the shipped catalog", () => {
     const groups = groupEffects(rowsIn(en));
     const color = groups.find((g) => g.category === "color")!;
     expect(color.label).toBe("Color");
-    expect(color.items.map((i) => i.kind)).toEqual(["brightness", "contrast", "saturation"]);
+    expect(color.items.map((i) => i.kind)).toEqual([
+      "brightness", "contrast", "saturation",
+      // Studio-IA adjustments (studioEffects.ts), after the upstream trio.
+      "blackwhite", "sepia", "temperature", "tint", "hue", "fade", "tone",
+    ]);
   });
 
   it("groups sharpen under Stylize", () => {
     const groups = groupEffects(rowsIn(en));
     const stylize = groups.find((g) => g.category === "stylize")!;
     expect(stylize.label).toBe("Stylize");
-    expect(stylize.items.map((i) => i.kind)).toEqual(["sharpen"]);
+    expect(stylize.items.map((i) => i.kind)).toEqual(["sharpen", "vignette", "pixelate", "rgbsplit", "mirror"]);
+  });
+
+  it("Studio-IA: masks and 3D get their own groups", () => {
+    const groups = groupEffects(rowsIn(en));
+    expect(groups.find((g) => g.category === "mask")!.items.map((i) => i.kind)).toEqual(["mask"]);
+    expect(groups.find((g) => g.category === "3d")!.items.map((i) => i.kind)).toEqual(["rotate3d"]);
   });
 });

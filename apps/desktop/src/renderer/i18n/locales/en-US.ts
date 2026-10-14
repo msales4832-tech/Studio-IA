@@ -2288,6 +2288,8 @@ const enUS = {
       keying: "Keying",
       color: "Color",
       stylize: "Stylize",
+      mask: "Mask",
+      "3d": "3D",
       audio: "Audio",
     },
     audio: {
@@ -2302,6 +2304,71 @@ const enUS = {
         pending: "Processing…",
         failed: "Failed: {{error}}",
       },
+    },
+    blackwhite: {
+      name: "Black & White",
+      desc: "Remove color",
+      params: { amount: "Amount" },
+    },
+    sepia: {
+      name: "Sepia",
+      desc: "Warm vintage brown",
+      params: { amount: "Amount" },
+    },
+    temperature: {
+      name: "Temperature",
+      desc: "Warm up or cool down",
+      params: { amount: "Amount" },
+    },
+    tint: {
+      name: "Tint",
+      desc: "Green ↔ magenta",
+      params: { amount: "Amount" },
+    },
+    hue: {
+      name: "Hue",
+      desc: "Rotate every color",
+      params: { amount: "Degrees" },
+    },
+    fade: {
+      name: "Fade",
+      desc: "Lifted blacks, film look",
+      params: { amount: "Amount" },
+    },
+    tone: {
+      name: "Highlights & Shadows",
+      desc: "Recover or deepen bright and dark areas",
+      params: { highlights: "Highlights", shadows: "Shadows" },
+    },
+    vignette: {
+      name: "Vignette",
+      desc: "Darken the edges",
+      params: { amount: "Amount", softness: "Softness" },
+    },
+    pixelate: {
+      name: "Pixelate",
+      desc: "Mosaic blocks",
+      params: { size: "Block size (px)" },
+    },
+    rgbsplit: {
+      name: "RGB Split",
+      desc: "Chromatic aberration glitch",
+      params: { amount: "Offset (px)", angle: "Angle (°)" },
+    },
+    mirror: {
+      name: "Mirror",
+      desc: "Reflect one half onto the other",
+      params: { mode: "Mode (0 ←, 1 →, 2 ↑, 3 ↓)" },
+    },
+    mask: {
+      name: "Mask",
+      desc: "Linear, band, circle or rectangle with soft edge",
+      params: { shape: "Shape (0 linear, 1 band, 2 circle, 3 rectangle)", x: "Center X (%)", y: "Center Y (%)", width: "Width (%)", height: "Height (%)", rotation: "Rotation (°)", feather: "Feather", invert: "Invert" },
+    },
+    rotate3d: {
+      name: "3D Rotate",
+      desc: "Tilt the clip like a card in perspective",
+      params: { rot_x: "Tilt X (°)", rot_y: "Tilt Y (°)", distance: "Camera distance" },
     },
     audio_denoise: {
       name: "Denoise",

@@ -2044,6 +2044,8 @@ const zhCN: Resources = {
       keying: "抠像",
       color: "调色",
       stylize: "风格化",
+      mask: "蒙版",
+      "3d": "3D",
       audio: "音频",
     },
     audio: {
@@ -2058,6 +2060,71 @@ const zhCN: Resources = {
         pending: "处理中",
         failed: "失败：{{error}}",
       },
+    },
+    blackwhite: {
+      name: "黑白",
+      desc: "去除颜色",
+      params: { amount: "强度" },
+    },
+    sepia: {
+      name: "复古棕",
+      desc: "温暖的怀旧色调",
+      params: { amount: "强度" },
+    },
+    temperature: {
+      name: "色温",
+      desc: "变暖或变冷",
+      params: { amount: "强度" },
+    },
+    tint: {
+      name: "色调",
+      desc: "绿色 ↔ 品红",
+      params: { amount: "强度" },
+    },
+    hue: {
+      name: "色相",
+      desc: "旋转所有颜色",
+      params: { amount: "角度" },
+    },
+    fade: {
+      name: "褪色",
+      desc: "提亮暗部，胶片质感",
+      params: { amount: "强度" },
+    },
+    tone: {
+      name: "高光与阴影",
+      desc: "恢复或加深亮部和暗部",
+      params: { highlights: "高光", shadows: "阴影" },
+    },
+    vignette: {
+      name: "暗角",
+      desc: "压暗边缘",
+      params: { amount: "强度", softness: "柔和度" },
+    },
+    pixelate: {
+      name: "像素化",
+      desc: "马赛克方块",
+      params: { size: "方块大小（像素）" },
+    },
+    rgbsplit: {
+      name: "RGB 分离",
+      desc: "色差故障效果",
+      params: { amount: "偏移（像素）", angle: "角度（°）" },
+    },
+    mirror: {
+      name: "镜像",
+      desc: "把一半反射到另一半",
+      params: { mode: "模式（0 ←，1 →，2 ↑，3 ↓）" },
+    },
+    mask: {
+      name: "蒙版",
+      desc: "线性、镜面、圆形或矩形，边缘可羽化",
+      params: { shape: "形状（0 线性，1 镜面，2 圆形，3 矩形）", x: "中心 X（%）", y: "中心 Y（%）", width: "宽度（%）", height: "高度（%）", rotation: "旋转（°）", feather: "羽化", invert: "反转" },
+    },
+    rotate3d: {
+      name: "3D 旋转",
+      desc: "像卡片一样透视倾斜片段",
+      params: { rot_x: "X 倾斜（°）", rot_y: "Y 倾斜（°）", distance: "相机距离" },
     },
     audio_denoise: {
       name: "降噪",

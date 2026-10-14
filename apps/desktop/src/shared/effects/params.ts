@@ -11,6 +11,7 @@
 // `effectParamSpecs` below.
 
 import { AUDIO_EFFECTS } from '../audioEffects/catalog'
+import { STUDIO_EFFECT_PARAMS } from './studioParams'
 
 export interface EffectParamRange {
   default: number
@@ -36,6 +37,8 @@ export const VISUAL_EFFECT_PARAMS: Readonly<Record<string, Readonly<Record<strin
   contrast: { amount: { default: 0, range: [-100, 100], step: 1 } },
   saturation: { amount: { default: 0, range: [-100, 100], step: 1 } },
   sharpen: { amount: { default: 0, range: [0, 100], step: 1 } },
+  // Studio-IA: CapCut-style adjustments, masks and 3D (studioParams.ts).
+  ...STUDIO_EFFECT_PARAMS,
 }
 
 /** Every kind `add_effect` accepts: the visual catalog, then the `audio.*`

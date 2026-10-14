@@ -231,6 +231,8 @@ const ptBR: DeepPartial<Resources> = {
       keying: "Recorte",
       color: "Cor",
       stylize: "Estilizar",
+      mask: "Máscara",
+      "3d": "3D",
       audio: "Áudio",
     },
     audio: {
@@ -245,6 +247,71 @@ const ptBR: DeepPartial<Resources> = {
         pending: "Processando…",
         failed: "Falhou: {{error}}",
       },
+    },
+    blackwhite: {
+      name: "Preto e branco",
+      desc: "Remove a cor",
+      params: { amount: "Intensidade" },
+    },
+    sepia: {
+      name: "Sépia",
+      desc: "Marrom vintage quente",
+      params: { amount: "Intensidade" },
+    },
+    temperature: {
+      name: "Temperatura",
+      desc: "Esquenta ou esfria a imagem",
+      params: { amount: "Intensidade" },
+    },
+    tint: {
+      name: "Tom",
+      desc: "Verde ↔ magenta",
+      params: { amount: "Intensidade" },
+    },
+    hue: {
+      name: "Matiz",
+      desc: "Gira todas as cores",
+      params: { amount: "Graus" },
+    },
+    fade: {
+      name: "Esmaecer",
+      desc: "Pretos levantados, visual de filme",
+      params: { amount: "Intensidade" },
+    },
+    tone: {
+      name: "Realces e sombras",
+      desc: "Recupera ou aprofunda as áreas claras e escuras",
+      params: { highlights: "Realces", shadows: "Sombras" },
+    },
+    vignette: {
+      name: "Vinheta",
+      desc: "Escurece as bordas",
+      params: { amount: "Intensidade", softness: "Suavidade" },
+    },
+    pixelate: {
+      name: "Pixelizar",
+      desc: "Mosaico em blocos",
+      params: { size: "Tamanho do bloco (px)" },
+    },
+    rgbsplit: {
+      name: "Separação RGB",
+      desc: "Glitch de aberração cromática",
+      params: { amount: "Deslocamento (px)", angle: "Ângulo (°)" },
+    },
+    mirror: {
+      name: "Espelho",
+      desc: "Reflete uma metade na outra",
+      params: { mode: "Modo (0 ←, 1 →, 2 ↑, 3 ↓)" },
+    },
+    mask: {
+      name: "Máscara",
+      desc: "Linear, faixa, círculo ou retângulo com borda suave",
+      params: { shape: "Forma (0 linear, 1 faixa, 2 círculo, 3 retângulo)", x: "Centro X (%)", y: "Centro Y (%)", width: "Largura (%)", height: "Altura (%)", rotation: "Rotação (°)", feather: "Suavizar borda", invert: "Inverter" },
+    },
+    rotate3d: {
+      name: "Giro 3D",
+      desc: "Inclina o clipe como um cartão em perspectiva",
+      params: { rot_x: "Inclinação X (°)", rot_y: "Inclinação Y (°)", distance: "Distância da câmera" },
     },
     audio_denoise: {
       name: "Redução de ruído",
