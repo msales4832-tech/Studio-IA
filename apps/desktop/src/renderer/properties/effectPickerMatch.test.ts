@@ -123,7 +123,7 @@ describe("the shipped catalog", () => {
     expect(color.items.map((i) => i.kind)).toEqual([
       "brightness", "contrast", "saturation",
       // Studio-IA adjustments (studioEffects.ts), after the upstream trio.
-      "blackwhite", "sepia", "temperature", "tint", "hue", "fade", "tone",
+      "blackwhite", "sepia", "temperature", "tint", "hue", "fade", "tone", "splittone", "filmcurve",
     ]);
   });
 
@@ -131,7 +131,7 @@ describe("the shipped catalog", () => {
     const groups = groupEffects(rowsIn(en));
     const stylize = groups.find((g) => g.category === "stylize")!;
     expect(stylize.label).toBe("Stylize");
-    expect(stylize.items.map((i) => i.kind)).toEqual(["sharpen", "vignette", "pixelate", "rgbsplit", "mirror"]);
+    expect(stylize.items.map((i) => i.kind)).toEqual(["sharpen", "vignette", "pixelate", "rgbsplit", "mirror", "glow", "grain"]);
   });
 
   it("Studio-IA: masks and 3D get their own groups", () => {

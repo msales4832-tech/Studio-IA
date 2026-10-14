@@ -33,7 +33,7 @@ const EXPECTED_TOOL_NAMES = new Set<string>([
   'smooth_keyframes', 'clear_keyframes', 'set_param_track', 'set_extrapolation',
   'update_link', 'read_project',
   'dry_run', 'create_checkpoint', 'list_checkpoints', 'restore_checkpoint', 'begin_agent_session', 'end_agent_session', 'export_captions', 'open_project', 'create_project',
-  'apply_subtitles', 'auto_split_by_shot', 'remove_pauses',
+  'apply_effect_preset', 'apply_subtitles', 'auto_split_by_shot', 'remove_pauses',
 ])
 
 describe('MCP tool table projections', () => {
@@ -73,7 +73,7 @@ describe('MCP tool table projections', () => {
 
   it('table-exec defs all have parseArgs', () => {
     const table = MCP_TOOL_DEFS.filter((d) => d.exec === 'table')
-    expect(table.length).toBe(53)
+    expect(table.length).toBe(54)
     for (const d of table) {
       expect(d.parseArgs, `${d.name} should have parseArgs`).toBeDefined()
     }

@@ -83,6 +83,10 @@ export interface EffectDescriptor extends UiEffectDescriptor {
   params: Record<string, EffectParamSpec>;
   fidelity: "f16-verified" | "precision-reduced";
   colorspace: "display-gamma";
+  /// Studio-IA: per-frame hook for effects that change with clip time
+  /// (grain). Called after the params, with the playhead relative to the
+  /// layer start — the same time export renders, so it stays deterministic.
+  tick?(filter: Filter, tInLayerUs: number): void;
 }
 
 /// The i18n namespace an effect's copy lives under — its `desc` and every

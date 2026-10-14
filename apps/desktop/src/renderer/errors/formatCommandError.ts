@@ -331,6 +331,7 @@ const COMMAND_COPY: { [C in CommandCode]: Spec<CommandOf<C>> } = {
   EmptyKeyframeTrack: { tier: "generic" },
   UnknownKeyframeParam: { tier: "generic" },
   EffectNotFound: { tier: "generic" },
+  EffectPresetNotFound: { tier: "generic" },
   EffectIndexOutOfRange: { tier: "generic" },
   EffectKindNotApplicable: { tier: "generic" },
   AudioEffectParamStatic: { tier: "generic" },

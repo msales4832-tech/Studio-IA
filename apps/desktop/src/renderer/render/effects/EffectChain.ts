@@ -37,7 +37,9 @@ export class EffectChain {
     for (let i = 0; i < this.instances.length; i++) {
       const inst = this.instances[i]!;
       const view = wanted[i]!;
-      const spec = getDescriptor(inst.kind)!.params;
+      const descriptor = getDescriptor(inst.kind)!;
+      const spec = descriptor.params;
+      descriptor.tick?.(inst.filter, tInLayerUs);
       for (const [key, paramSpec] of Object.entries(spec)) {
         const v = resolveAnimated(view.params[key], tInLayerUs, paramSpec.default);
         // Color-pick hover live-apply: a transient override (never recorded)

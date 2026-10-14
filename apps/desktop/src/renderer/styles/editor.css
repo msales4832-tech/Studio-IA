@@ -2232,3 +2232,90 @@
 }
 
 .prop-bake-status.is-paused, .prop-bake-status.is-retrying { color: var(--warning); }
+
+/* ── Studio-IA: abas Prontos/Ajustes e galeria de efeitos prontos ───────── */
+.studio-effect-tabs,
+.studio-presets-tabs {
+  display: flex;
+  gap: calc(4 * var(--ui-px));
+  flex-wrap: wrap;
+}
+.studio-effect-tabs {
+  padding: calc(6 * var(--ui-px)) calc(8 * var(--ui-px)) 0;
+}
+.studio-effect-tab,
+.studio-presets-tab {
+  padding: calc(4 * var(--ui-px)) calc(10 * var(--ui-px));
+  font-size: var(--font-size-caption);
+  color: var(--muted-foreground);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.studio-effect-tab:hover,
+.studio-presets-tab:hover {
+  color: var(--foreground);
+  background: var(--hover-neutral-strong);
+}
+.studio-effect-tab.is-active,
+.studio-presets-tab.is-active {
+  color: var(--foreground);
+  background: var(--secondary);
+  border-color: var(--border);
+}
+.studio-presets {
+  display: flex;
+  flex-direction: column;
+  gap: calc(8 * var(--ui-px));
+  padding: calc(8 * var(--ui-px));
+}
+.studio-presets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(104 * var(--ui-px)), 1fr));
+  gap: calc(8 * var(--ui-px));
+}
+.studio-preset-card {
+  display: flex;
+  flex-direction: column;
+  gap: calc(4 * var(--ui-px));
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: var(--foreground);
+  text-align: left;
+  cursor: pointer;
+}
+.studio-preset-card img,
+.studio-preset-placeholder {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius-control);
+  border: 2px solid transparent;
+  background: var(--secondary);
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+.studio-preset-card:hover:not(:disabled) img,
+.studio-preset-card:focus-visible img {
+  border-color: var(--foreground);
+}
+.studio-preset-card[aria-busy="true"] img {
+  opacity: 0.6;
+}
+.studio-preset-card:disabled {
+  cursor: default;
+}
+.studio-preset-name {
+  font-size: var(--font-size-caption);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.studio-presets-hint {
+  font-size: var(--font-size-caption);
+  color: var(--muted-foreground);
+  margin: 0;
+}

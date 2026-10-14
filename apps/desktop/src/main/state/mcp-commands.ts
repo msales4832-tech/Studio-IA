@@ -15,6 +15,7 @@ import type { MarkerPatch } from './mutations/markers'
 import type { LayerPatch } from './mutations/update'
 import type { LayerParamsPatch } from './mutations/params'
 import { EFFECT_KINDS, effectParamSpecs } from '../../shared/effects/params'
+import { EFFECT_PRESET_IDS } from '../../shared/effects/studioPresets'
 import { positionProblem } from '../../shared/position'
 import { sortKeys } from './canonical'
 import { CANVAS_MAX, CANVAS_MIN, DEFAULT_CANVAS, FPS_OPTIONS, canvasSizeError, validateProjectName } from '../../shared/newProject'
@@ -1702,6 +1703,13 @@ export const MCP_TOOL_DEFS: ReadonlyArray<McpToolDef> = [
     description: "Append an effect to a layer's chain (applied last) and return its record (`effect_id`, `kind`, `index`). `kind` is the catalog key. Visual kinds (\"blur\", \"chromakey\", \"brightness\", \"contrast\", \"saturation\", \"sharpen\") go on visual layers: the colour trio take `amount` in [-100, 100] (percent offset, 0 = no change), \"sharpen\" takes `amount` in [0, 100]. Audio kinds are the `audio.*` namespace, for Audio layers ONLY, and their params are STATIC ONLY (`set_keyframe` on one is `AudioEffectParamStatic`); a kind on the wrong layer kind is `EffectKindNotApplicable`. The one audio kind is \"audio.denoise\": `strength` dB [1, 40] (default 12), `margin` dB [0, 20] (default 8), and `profile_in_us`/`profile_out_us`, SOURCE-time bounds of a noise-only span ≥ 250000 µs — it does nothing until both are set. The effect is created with no params: set a static value with `update_effect` first, then (visual only) `set_keyframe` on `effects[<id>].params[<key>]`. `effects://catalog` (or `read_project { view: \"effects\" }`) lists every kind's params, defaults and ranges.",
     inputSchema: { type: 'object', properties: { kind: { type: 'string', enum: [...EFFECT_KINDS], description: 'Catalog key: visual kinds on visual layers, audio.* on Audio layers.' }, layer_id: LAYER_ID_SCHEMA }, required: ['kind', 'layer_id'] },
     parseArgs: (a) => ({ op: 'add_effect', args: { layer: parseUuid(a.layer_id, 'layer_id'), kind: parseEffectKind(a.kind) } }) },
+  { name: 'apply_effect_preset', exec: 'table', annotations: ANN_WRITE,
+    description: "Append a ready-made look (several tuned effects) to a visual layer as ONE undo step; returns `effect_ids`, each editable with update_effect.",
+    inputSchema: { type: 'object', properties: { preset: { type: 'string', enum: [...EFFECT_PRESET_IDS], description: 'Look id.' }, layer_id: LAYER_ID_SCHEMA }, required: ['preset', 'layer_id'] },
+    parseArgs: (a) => {
+      if (typeof a.preset !== 'string' || !EFFECT_PRESET_IDS.includes(a.preset)) throw new McpArgError(`unknown preset — presets: ${EFFECT_PRESET_IDS.join(', ')}`, 'preset')
+      return { op: 'add_effect_preset', args: { layer: parseUuid(a.layer_id, 'layer_id'), preset: a.preset } }
+    } },
   { name: 'update_effect', exec: 'table', annotations: ANN_SET,
     description: "Update an effect: patch is `{ enabled?, params? }` where params is `{ paramKey: { \"mode\": \"Static\", \"value\": <number> } }` (v1 params are scalar). A `null` param value removes the key (back to unset/default). For keyframed params use set_keyframe with param_key \"effects[<effect_id>].params[<key>]\". An unparseable patch (non-object, unknown key, malformed param value) rejects with invalid_params — it never partially applies.",
     inputSchema: { type: 'object', properties: { effect_id: ID_SCHEMA('Effect'), layer_id: LAYER_ID_SCHEMA, patch: {

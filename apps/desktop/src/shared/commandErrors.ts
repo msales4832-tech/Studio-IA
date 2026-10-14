@@ -213,6 +213,8 @@ export type CommandError =
   | { error: 'EmptyKeyframeTrack'; layer: Uuid; param_key: string }
   | { error: 'UnknownKeyframeParam'; layer: Uuid; param_key: string }
   | { error: 'EffectNotFound'; effect: Uuid }
+  // Studio-IA: `add_effect_preset` named a preset `studioPresets.ts` lacks.
+  | { error: 'EffectPresetNotFound'; preset: string }
   | { error: 'EffectIndexOutOfRange'; index: number; len: number }
   // ── Audio effects (ADR 0063) ──
   // The `audio.*` namespace and Audio layers are the same set: audio effects

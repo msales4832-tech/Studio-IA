@@ -32,7 +32,7 @@ import { applyFitComposition } from './mutations/composition'
 import { applyDurationAutofit, compositionOf, locateLayer, locateTrack, requireLayer, requireSameComposition, requireTrack, scopeComposition } from './mutations/helpers'
 import { applyAttachMarker, applyDetachMarker, applyUpdateMarker, applyRemoveMarker, type MarkerPatch } from './mutations/markers'
 import { applyDeleteTrack, applyMoveTrack, applyRenameTrack } from './mutations/tracks'
-import { applyAddEffect, applyUpdateEffect, applyMoveEffect, applyRemoveEffect, type EffectPatch } from './mutations/effects'
+import { applyAddEffect, applyAddEffectPreset, applyUpdateEffect, applyMoveEffect, applyRemoveEffect, type EffectPatch } from './mutations/effects'
 import { applyAddTransition, applyRemoveTransition, applyUpdateTransition, type TransitionBounce } from './mutations/transitions'
 import { videoClipParams, audioParams, imageOverlayParams, mediaExtent, applySeparateAudio, mediaItemTemplate,
   applySetMediaDerivatives, applySetMediaWorkspacePaths, applySetMediaHash, referencingLayers,
@@ -1436,6 +1436,7 @@ export function createActor(opts: ActorOptions): ActorHandle {
         case 'rename_track': commit(HISTORY_SUMMARY.trackRename, [{ kind: 'Track', id: a.track as Uuid }], { kind: 'Coarse' }, (d) => applyRenameTrack(d, a.track as Uuid, (a.label as string) ?? null)); return { ok: true, value: null }
         case 'update_track_flags': updateTrackFlags(a.track as Uuid, a.patch as TrackFlagsPatch); return { ok: true, value: null }
         case 'add_effect': return { ok: true, value: commit(HISTORY_SUMMARY.effectAdd, [{ kind: 'Layer', id: a.layer as Uuid }], { kind: 'Coarse' }, (d) => applyAddEffect(d, idGen, a.layer as Uuid, a.kind as string)) }
+        case 'add_effect_preset': return { ok: true, value: commit(HISTORY_SUMMARY.effectPreset, [{ kind: 'Layer', id: a.layer as Uuid }], { kind: 'Coarse' }, (d) => applyAddEffectPreset(d, idGen, a.layer as Uuid, a.preset as string)) }
         case 'update_effect': commit(HISTORY_SUMMARY.effectUpdate, [{ kind: 'Layer', id: a.layer as Uuid }], { kind: 'Coarse' }, (d) => applyUpdateEffect(d, a.layer as Uuid, a.effect as Uuid, a.patch as EffectPatch)); return { ok: true, value: null }
         case 'move_effect': commit(HISTORY_SUMMARY.effectReorder, [{ kind: 'Layer', id: a.layer as Uuid }], { kind: 'Coarse' }, (d) => applyMoveEffect(d, a.layer as Uuid, a.effect as Uuid, parseNum(a.new_index, 'new_index'))); return { ok: true, value: null }
         case 'remove_effect': commit(HISTORY_SUMMARY.effectRemove, [{ kind: 'Layer', id: a.layer as Uuid }], { kind: 'Coarse' }, (d) => applyRemoveEffect(d, a.layer as Uuid, a.effect as Uuid)); return { ok: true, value: null }

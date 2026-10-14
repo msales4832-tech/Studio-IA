@@ -3,7 +3,7 @@ import { seededGen, type IdGen } from '../ids'
 import { blankProject, type Project } from '../model'
 import { applyAddLayer, applyAddTrack, colorParams } from './add'
 import { audioParams, videoClipParams } from './media'
-import { applyAddEffect, applyUpdateEffect, applyMoveEffect, applyRemoveEffect } from './effects'
+import { applyAddEffect, applyAddEffectPreset, applyUpdateEffect, applyMoveEffect, applyRemoveEffect } from './effects'
 import { isCommandFailure } from '../errors'
 import { group, groupedProject, root } from '../__tests__/fixtures/project'
 
@@ -283,5 +283,26 @@ describe('audio effect rules', () => {
     const eid = applyAddEffect(p, gen, videoId, 'blur')
     applyUpdateEffect(p, videoId, eid, { params: { strength: kfTrack() } })
     expect(effectsOf(p, videoId)[0].params.strength.mode).toBe('Keyframed')
+  })
+})
+
+describe('applyAddEffectPreset (Studio-IA)', () => {
+  it('appends every effect of the preset with its static params, in order', () => {
+    const { p, gen, layerId } = withLayer()
+    const ids = applyAddEffectPreset(p, gen, layerId, 'cine_noir')
+    const fx = effectsOf(p, layerId)
+    expect(fx.map((e) => e.id)).toEqual(ids)
+    expect(fx.map((e) => e.kind)).toEqual(['blackwhite', 'filmcurve', 'grain', 'vignette'])
+    expect(fx[1]!.params.amount).toEqual(sp(70))
+    expect(fx[2]!.params.size).toEqual(sp(1.4))
+  })
+  it('refuses an unknown preset without touching the chain', () => {
+    const { p, gen, layerId } = withLayer()
+    expectCmd(() => applyAddEffectPreset(p, gen, layerId, 'nope'), 'EffectPresetNotFound')
+    expect(effectsOf(p, layerId)).toHaveLength(0)
+  })
+  it('refuses a missing layer', () => {
+    const { p, gen } = withLayer()
+    expectCmd(() => applyAddEffectPreset(p, gen, 'ghost', 'cine_noir'), 'LayerNotFound')
   })
 })

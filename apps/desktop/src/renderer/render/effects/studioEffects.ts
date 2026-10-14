@@ -5,7 +5,9 @@ import { ColorMatrixFilter, type Filter } from "pixi.js";
 import { STUDIO_EFFECT_PARAMS } from "../../../shared/effects/studioParams";
 import type { EffectCategory, EffectDescriptor } from "./effectRegistry";
 import { ShaderEffectFilter, type ShaderEffectSpec } from "./filters/shaderEffect";
-import { MASK, MIRROR, PIXELATE, RGB_SPLIT, ROTATE_3D, TONE, VIGNETTE } from "./filters/studioShaders";
+import {
+  FILM_CURVE, GLOW, GRAIN, MASK, MIRROR, PIXELATE, RGB_SPLIT, ROTATE_3D, SPLIT_TONE, TONE, VIGNETTE,
+} from "./filters/studioShaders";
 import {
   writeBlackWhite,
   writeFade,
@@ -78,7 +80,17 @@ export const STUDIO_EFFECTS: Record<string, EffectDescriptor> = {
   mirror: shaderEffect("mirror", "stylize", MIRROR, { mode: "uMode" }),
   mask: shaderEffect("mask", "mask", MASK, {
     shape: "uShape", x: "uX", y: "uY", width: "uWidth", height: "uHeight",
-    rotation: "uRotation", feather: "uFeather", invert: "uInvert",
+    rotation: "uRotation", feather: "uFeather", invert: "uInvert", round: "uRound",
   }),
+  glow: shaderEffect("glow", "stylize", GLOW, { amount: "uAmount", radius: "uRadius", threshold: "uThreshold" }),
+  grain: {
+    ...shaderEffect("grain", "stylize", GRAIN, { amount: "uAmount", size: "uSize" }),
+    // O granulado muda com o tempo do clipe (24 renovações por segundo).
+    tick: (f, tInLayerUs) => (f as ShaderEffectFilter).applyParam("uTime", tInLayerUs / 1_000_000),
+  },
+  splittone: shaderEffect("splittone", "color", SPLIT_TONE, {
+    shadow_hue: "uShadowHue", highlight_hue: "uHighlightHue", amount: "uAmount", balance: "uBalance",
+  }),
+  filmcurve: shaderEffect("filmcurve", "color", FILM_CURVE, { amount: "uAmount" }),
   rotate3d: shaderEffect("rotate3d", "3d", ROTATE_3D, { rot_x: "uRotX", rot_y: "uRotY", distance: "uDistance" }),
 };

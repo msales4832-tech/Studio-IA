@@ -1337,6 +1337,12 @@ export async function addEffect(layerId: string, kind: string): Promise<string> 
   return invoke<string>("add_effect", { layerId, kind });
 }
 
+/// Studio-IA: append a ready-made look (`shared/effects/studioPresets.ts`) as
+/// ONE undo step; resolves to the new effect ids, in chain order.
+export async function addEffectPreset(layerId: string, presetId: string): Promise<string[]> {
+  return invoke<string[]>("add_effect_preset", { layerId, presetId });
+}
+
 /// Patch an effect (enabled flag and/or scalar params).
 export async function updateEffect(
   layerId: string,

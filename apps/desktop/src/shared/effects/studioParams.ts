@@ -20,7 +20,7 @@ export const STUDIO_EFFECT_PARAMS: Readonly<Record<string, Readonly<Record<strin
   rgbsplit: { amount: { default: 6, range: [0, 50], step: 0.5 }, angle: { default: 0, range: [0, 360], step: 1 } },
   mirror: { mode: { default: 0, range: [0, 3], step: 1 } },
   mask: {
-    shape: { default: 2, range: [0, 3], step: 1 },
+    shape: { default: 2, range: [0, 5], step: 1 },
     x: pct(50),
     y: pct(50),
     width: { default: 50, range: [1, 200], step: 1 },
@@ -28,7 +28,17 @@ export const STUDIO_EFFECT_PARAMS: Readonly<Record<string, Readonly<Record<strin
     rotation: { default: 0, range: [-180, 180], step: 1 },
     feather: pct(10),
     invert: { default: 0, range: [0, 1], step: 1 },
+    round: pct(0),
   },
+  glow: { amount: pct(40), radius: pct(30), threshold: pct(60) },
+  grain: { amount: pct(30), size: { default: 1.5, range: [0.5, 5], step: 0.1 } },
+  splittone: {
+    shadow_hue: { default: 190, range: [0, 360], step: 1 },
+    highlight_hue: { default: 35, range: [0, 360], step: 1 },
+    amount: pct(40),
+    balance: bipolar(),
+  },
+  filmcurve: { amount: pct(40) },
   rotate3d: {
     rot_x: { default: 0, range: [-80, 80], step: 1 },
     rot_y: { default: 25, range: [-80, 80], step: 1 },

@@ -4,6 +4,7 @@ import type { IdGen } from '../ids'
 import { CommandFailure } from '../errors'
 import { quantizeEffectTrack } from '../quantize'
 import { isAudioKind } from '../../../shared/audioEffects/catalog'
+import { getEffectPreset } from '../../../shared/effects/studioPresets'
 
 /** Diverges from Rust's `EffectPatch` (`native/src/state/effect.rs`): a `null`
  *  param value removes the key, which the Rust shape cannot express. An
@@ -115,4 +116,21 @@ export function applyRemoveEffect(p: Project, layerId: Uuid, effectId: Uuid): vo
   const at = effects.findIndex((e) => e.id === effectId)
   if (at < 0) throw new CommandFailure({ error: 'EffectNotFound', effect: effectId })
   effects.splice(at, 1)
+}
+
+/** Studio-IA: append every effect of a ready-made preset (`studioPresets.ts`)
+ *  with its params, inside the caller's ONE commit — one undo for the look.
+ *  Unknown preset → EffectPresetNotFound, before any id is burned. */
+export function applyAddEffectPreset(p: Project, idGen: IdGen, layerId: Uuid, presetId: string): Uuid[] {
+  const preset = getEffectPreset(presetId)
+  if (!preset) throw new CommandFailure({ error: 'EffectPresetNotFound', preset: presetId })
+  const ids: Uuid[] = []
+  for (const e of preset.effects) {
+    const id = applyAddEffect(p, idGen, layerId, e.kind)
+    const params: Record<string, Animated<number>> = {}
+    for (const [k, v] of Object.entries(e.params)) params[k] = { mode: 'Static', value: v }
+    applyUpdateEffect(p, layerId, id, { params })
+    ids.push(id)
+  }
+  return ids
 }

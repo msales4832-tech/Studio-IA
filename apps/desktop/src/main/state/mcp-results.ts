@@ -402,6 +402,7 @@ export const MCP_RESULT_READERS: Record<string, ResultReader> = {
   delete_composition: (c) => ({ composition_id: str(c.args.composition_id) }),
   // ── effects ──
   add_effect: (c) => ({ ...(effectRecord(c.after, str(c.args.layer_id), str(c.value)) ?? { effect_id: str(c.value), layer_id: str(c.args.layer_id) }) }),
+  apply_effect_preset: (c) => ({ layer_id: str(c.args.layer_id), preset: str(c.args.preset), effect_ids: Array.isArray(c.value) ? c.value : [] }),
   update_effect: (c) => ({ ...(effectRecord(c.after, str(c.args.layer_id), str(c.args.effect_id)) ?? { effect_id: str(c.args.effect_id), layer_id: str(c.args.layer_id) }) }),
   move_effect: (c) => ({ ...(effectRecord(c.after, str(c.args.layer_id), str(c.args.effect_id)) ?? { effect_id: str(c.args.effect_id), layer_id: str(c.args.layer_id) }) }),
   delete_effect: (c) => ({

@@ -35,6 +35,13 @@ vi.mock("../properties/EffectsSection", async () => {
   };
 });
 
+// Studio-IA: a galeria real precisa de WebGL para as miniaturas; aqui ela é
+// trocada por um marcador — o que se testa é QUANDO o painel a mostra.
+vi.mock("../properties/EffectPresetGallery", () => ({
+  EffectPresetGallery: () => <div data-testid="effect-presets" />,
+}));
+
+import { fireEvent } from "@testing-library/react";
 import { EffectPanel } from "./EffectPanel";
 
 afterEach(() => cleanup());
@@ -140,5 +147,32 @@ describe("EffectPanel boundary", () => {
     const kinds = (screen.getByTestId("effect-chain").getAttribute("data-kinds") ?? "").split(",");
     expect(kinds.length).toBeGreaterThan(0);
     expect(kinds.some((k) => k.startsWith("audio."))).toBe(false);
+  });
+
+  it("Studio-IA: abre na galeria de prontos quando a cadeia está vazia", () => {
+    render(
+      <EffectPanel
+        tracks={[trackWithLayer("Color", 0)]}
+        selectedLayerId="layer-1"
+        currentTimeUs={0}
+        onMutated={async () => {}}
+      />,
+    );
+    expect(screen.getByTestId("effect-presets")).toBeTruthy();
+    fireEvent.click(screen.getByTestId("effect-tab-chain"));
+    expect(screen.getByTestId("effect-chain")).toBeTruthy();
+  });
+
+  it("Studio-IA: camada de áudio não tem aba de prontos", () => {
+    render(
+      <EffectPanel
+        tracks={[trackWithLayer("Audio", 0)]}
+        selectedLayerId="layer-1"
+        currentTimeUs={0}
+        onMutated={async () => {}}
+      />,
+    );
+    expect(screen.queryByTestId("effect-tab-presets")).toBeNull();
+    expect(screen.getByTestId("effect-chain")).toBeTruthy();
   });
 });

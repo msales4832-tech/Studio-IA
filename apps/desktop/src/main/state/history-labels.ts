@@ -80,6 +80,7 @@ export const HISTORY_SUMMARY = {
   effectUpdate: { key: 'history.effect.update', text: 'Updated effect' },
   effectReorder: { key: 'history.effect.reorder', text: 'Reordered effect' },
   effectRemove: { key: 'history.effect.remove', text: 'Removed effect' },
+  effectPreset: { key: 'history.effect.preset', text: 'Applied effect preset' },
 
   transitionAdd: { key: 'history.transition.add', text: 'Added transition' },
   transitionUpdate: { key: 'history.transition.update', text: 'Updated transition' },

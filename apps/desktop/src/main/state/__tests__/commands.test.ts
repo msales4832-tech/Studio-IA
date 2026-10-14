@@ -20,7 +20,7 @@ describe('PRODUCTION_OPS', () => {
     const expected = [
       'retime_layers', 'set_preserve_pitch', 'set_frame_interpolation', 'get_frame_interpolation_capabilities',
       'correct_caption_text', 'set_correction_script', 'apply_transcripts',
-      'add_color_layer', 'add_demo_color_layer', 'add_demo_text_layer', 'add_effect',
+      'add_color_layer', 'add_demo_color_layer', 'add_demo_text_layer', 'add_effect', 'add_effect_preset',
       // The media pool's Group drop: an existing composition placed as one layer.
       'add_group_layer',
       // Markers — the renderer's first marker channels.
