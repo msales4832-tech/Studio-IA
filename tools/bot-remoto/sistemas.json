@@ -2,5 +2,9 @@
   "exemplo": {
     "url": "https://exemplo.com.br/login",
     "descricao": "Troque por um sistema de trabalho seu. So URLs listadas aqui podem ser abertas (whitelist)."
+  },
+  "teste": {
+    "url": "http://127.0.0.1:18080/login",
+    "descricao": "Pagina local de teste (node pagina-teste.js). Dados ficticios, nao e conta real."
   }
 }

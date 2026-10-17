@@ -5,7 +5,8 @@
   "description": "Bot de Telegram para administrar remotamente sessoes ja autenticadas no Playwright (perfil persistente). NAO guarda senhas.",
   "license": "MIT",
   "scripts": {
-    "start": "node --env-file=.env bot_remoto.js"
+    "start": "node --env-file=.env bot_remoto.js",
+    "test": "node teste-ponta-a-ponta.js"
   },
   "dependencies": {
     "node-telegram-bot-api": "^0.66.0",
