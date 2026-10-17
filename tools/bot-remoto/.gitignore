@@ -1,0 +1,4 @@
+# Segredos e dados sensiveis desta ferramenta (reforco local, alem do .gitignore da raiz)
+.env
+browser-profile/
+node_modules/
