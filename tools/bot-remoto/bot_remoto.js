@@ -18,6 +18,9 @@
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
+const os = require('os');
+const crypto = require('crypto');
+const { spawn, execFile } = require('child_process');
 const TelegramBot = require('node-telegram-bot-api');
 const { chromium } = require('playwright');
 
@@ -34,6 +37,18 @@ const CONTROLE_PORTA = Number(process.env.CONTROLE_PORTA ?? 8765);
 // pagina (0 desliga).
 const CDP_PORTA = Number(process.env.CDP_PORTA ?? 9222);
 const LOGIN_EXPIRA_MS = 5 * 60 * 1000;
+// Tarefas livres: o Claude trabalha SO nesta pasta (edicoes fora dela, comandos
+// e internet pedem o seu botao no Telegram).
+const TAREFAS_DIR = process.env.TAREFAS_DIR || path.join(os.homedir(), 'bot-remoto-tarefas');
+const TAREFA_LIMITE_MS = 15 * 60 * 1000;
+const APROVACAO_EXPIRA_MS = 5 * 60 * 1000;
+// Audio: transcrito pelo Gemini (o audio vai para o Google) e tratado como texto.
+const GEMINI_API_URL = process.env.GEMINI_API_URL || 'https://generativelanguage.googleapis.com';
+// 3.5-flash transcreveu em ~3 s (17/10/2026); o reserva entra se o Google estiver sobrecarregado.
+const GEMINI_MODELOS = [process.env.GEMINI_MODELO || 'gemini-3.5-flash', 'gemini-flash-lite-latest'];
+const AUDIO_MAX_BYTES = 15 * 1024 * 1024;
+// Segredo novo a cada inicio: so o porteiro que o bot abriu pode pedir aprovacao.
+const SEGREDO_APROVACAO = crypto.randomBytes(24).toString('hex');
 
 if (!TOKEN || !Number.isFinite(ALLOWED_USER_ID) || ALLOWED_USER_ID <= 0) {
   console.error(
@@ -42,6 +57,18 @@ if (!TOKEN || !Number.isFinite(ALLOWED_USER_ID) || ALLOWED_USER_ID <= 0) {
   );
   process.exit(1);
 }
+
+// Se o bot cair, deixa o motivo em bot-erros.log (sem dados sensiveis: so o erro).
+process.on('uncaughtException', (err) => {
+  try {
+    fs.appendFileSync(
+      path.join(__dirname, 'bot-erros.log'),
+      `${new Date().toISOString()} ${err && err.stack ? err.stack : err}\n`
+    );
+  } catch {}
+  console.error(err);
+  process.exit(1);
+});
 
 // --- Whitelist de sistemas conhecidos ---
 function carregarSistemas() {
@@ -148,9 +175,13 @@ function encerrarLogin(estado, motivo) {
 
 // --- Bot ---
 const bot = new TelegramBot(TOKEN, { polling: true });
+// Mensagens enviadas antes de o bot ligar (fila do Telegram de quando ele
+// estava fora do ar) NAO sao executadas: uma ordem antiga nao pode rodar sozinha.
+const INICIO_SEG = Math.floor(Date.now() / 1000);
 
+// So o dono, e so na conversa privada com o bot (em grupo, a senha do /login ficaria visivel).
 function autorizado(msg) {
-  return msg.from && msg.from.id === ALLOWED_USER_ID;
+  return msg.from && msg.from.id === ALLOWED_USER_ID && msg.chat && msg.chat.type === 'private';
 }
 
 const AJUDA = [
@@ -160,6 +191,9 @@ const AJUDA = [
   '/status - manda um print da pagina aberta agora',
   '/login [nome] - faz um login novo: voce manda usuario e senha, eu preencho e apago sua mensagem',
   '/cancelar - cancela o login em andamento',
+  'Texto livre (sem /) - vira uma tarefa para o Claude deste PC; o resultado volta aqui',
+  'Audio - eu transcrevo (Gemini), mostro o que entendi e vira tarefa',
+  '/parar - cancela a tarefa em andamento',
 ].join('\n');
 
 // Um /login por vez: um segundo /login enquanto o primeiro abre a pagina
@@ -296,11 +330,279 @@ async function receberCredencial(msg) {
   }
 }
 
+// --- Tarefas livres: texto do Telegram vira um pedido ao Claude deste PC ---
+
+// Acha o claude.exe mais novo instalado pelo app (ou o do .env / PATH).
+function acharClaude() {
+  if (process.env.CLAUDE_EXE) return process.env.CLAUDE_EXE;
+  const base = path.join(process.env.APPDATA || '', 'Claude', 'claude-code');
+  const versoes = (fs.existsSync(base) ? fs.readdirSync(base) : [])
+    .filter((v) => /^\d+(\.\d+)*$/.test(v))
+    .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+  for (const v of versoes) {
+    for (const sub of fs.readdirSync(path.join(base, v))) {
+      const exe = path.join(base, v, sub, 'claude.exe');
+      if (fs.existsSync(exe)) return exe;
+    }
+  }
+  return 'claude';
+}
+
+let tarefa = null; // { proc, chatId }
+let aprovacaoSeq = 0;
+const aprovacoes = new Map(); // id -> { resolver, timer, chatId, msgId }
+
+async function mandarTextoLongo(chatId, texto) {
+  for (let i = 0; i < texto.length || i === 0; i += 3500) {
+    await bot.sendMessage(chatId, texto.slice(i, i + 3500) || '(vazio)');
+  }
+}
+
+// Avisa o dono se nao conseguir parar (para ele nao achar que parou).
+function pararProcesso(proc, chatId) {
+  const falhou = () =>
+    bot.sendMessage(chatId, 'Nao consegui parar a tarefa. Feche a janela do bot para garantir.').catch(() => {});
+  if (process.platform === 'win32') {
+    execFile('taskkill', ['/pid', String(proc.pid), '/T', '/F'], (err) => {
+      if (err && proc.exitCode === null) falhou();
+    });
+  } else if (!proc.kill('SIGKILL')) falhou();
+}
+
+async function executarTarefa(chatId, pedidoTexto) {
+  if (tarefa) {
+    await bot.sendMessage(chatId, 'Ja tem uma tarefa rodando. Espere o resultado ou use /parar.');
+    return;
+  }
+  fs.mkdirSync(TAREFAS_DIR, { recursive: true });
+  const mcpConfig = path.join(os.tmpdir(), `bot-remoto-mcp-${process.pid}.json`);
+  fs.writeFileSync(
+    mcpConfig,
+    JSON.stringify({
+      mcpServers: {
+        aprovacao: {
+          command: process.execPath,
+          args: [path.join(__dirname, 'aprovacao-mcp.js')],
+          env: { CONTROLE_PORTA: String(CONTROLE_PORTA), BOT_APROVACAO_SEGREDO: SEGREDO_APROVACAO },
+        },
+      },
+    })
+  );
+  // Sem as variaveis da sessao do app: o claude.exe usa o PROPRIO login.
+  const env = Object.fromEntries(
+    Object.entries(process.env).filter(([k]) => !/^CLAUDE|^ANTHROPIC_BASE_URL$/i.test(k))
+  );
+  const args = [
+    '-p',
+    '--output-format', 'json',
+    // Edicoes so dentro da pasta de tarefas; o resto pergunta ao porteiro.
+    '--permission-mode', 'acceptEdits',
+    '--permission-prompt-tool', 'mcp__aprovacao__pedir',
+    '--mcp-config', mcpConfig,
+    '--strict-mcp-config',
+    // Nao carrega as permissoes amplas do usuario; so as desta pasta.
+    '--setting-sources', 'project',
+    // O Claude nao pode mudar as proprias regras de permissao.
+    '--disallowedTools', 'Edit(.claude/**)', 'Write(.claude/**)',
+    '--no-session-persistence',
+    // Cada comando fora da pasta vira um botao no celular do dono: nada de passos extras.
+    '--append-system-prompt',
+    'Voce recebe pedidos pelo Telegram; o dono esta longe do PC. Faca so o que foi pedido, ' +
+      'direto, na pasta atual. Cada comando de terminal, acesso a internet ou arquivo fora desta ' +
+      'pasta pede aprovacao no celular dele: evite comandos de verificacao que nao forem necessarios. ' +
+      'Responda em portugues do Brasil, curto, dizendo o que fez.',
+  ];
+  const proc = spawn(acharClaude(), args, { cwd: TAREFAS_DIR, env, windowsHide: true });
+  const atual = { proc, chatId };
+  tarefa = atual;
+  let saida = '';
+  let erros = '';
+  // Ouvintes de erro ja na abertura: sem eles, uma falha derruba o bot inteiro.
+  proc.on('error', (err) => {
+    erros += `nao consegui abrir o Claude: ${err.code || err.message}`;
+  });
+  proc.stdin.on('error', () => {});
+  proc.stdout.on('data', (p) => (saida += p));
+  proc.stderr.on('data', (p) => (erros += p));
+  proc.stdin.end(pedidoTexto); // o pedido vai pela entrada, sem problema de aspas
+  const limite = setTimeout(() => {
+    atual.motivo = 'passou de 15 minutos';
+    pararProcesso(proc, chatId);
+  }, TAREFA_LIMITE_MS);
+  proc.on('close', async (codigo) => {
+    clearTimeout(limite);
+    if (tarefa === atual) tarefa = null;
+    let texto;
+    try {
+      const r = JSON.parse(saida);
+      const negadas = (r.permission_denials || []).length;
+      texto =
+        (r.is_error ? 'O Claude terminou com erro:\n' : 'Pronto:\n') +
+        (r.result || r.terminal_reason || '(sem texto)') +
+        (negadas ? `\n\n(${negadas} acao(oes) negada(s) por falta de aprovacao)` : '');
+    } catch {
+      texto =
+        `A tarefa parou${atual.motivo ? ` (${atual.motivo})` : ''} (codigo ${codigo}).\n` +
+        (erros.trim().slice(-1500) || saida.trim().slice(-1500) || 'Sem mensagem.');
+    }
+    await mandarTextoLongo(chatId, texto).catch((err) => console.error('envio do resultado falhou:', err.message));
+  });
+  await bot.sendMessage(chatId, `Recebi. O Claude esta trabalhando na pasta ${TAREFAS_DIR}. /parar cancela.`);
+}
+
+// --- Audio: Telegram -> Gemini (transcricao) -> tarefa ---
+
+// Chave do .env do bot ou, se faltar, a que a skill watch ja usa (sem copiar o segredo).
+function chaveGemini() {
+  if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
+  try {
+    const txt = fs.readFileSync(path.join(os.homedir(), '.config', 'watch', '.env'), 'utf8');
+    const m = /^GEMINI_API_KEY=(.+)$/m.exec(txt);
+    return m ? m[1].trim().replace(/^["']|["']$/g, '') : null;
+  } catch {
+    return null;
+  }
+}
+
+async function transcrever(audio, tipo) {
+  const chave = chaveGemini();
+  if (!chave) throw new Error('sem GEMINI_API_KEY');
+  const corpo = JSON.stringify({
+    contents: [{
+      parts: [
+        { text: 'Transcreva este audio palavra por palavra, em portugues do Brasil. Responda so com a transcricao, sem comentarios.' },
+        { inline_data: { mime_type: tipo, data: audio.toString('base64') } },
+      ],
+    }],
+  });
+  let status;
+  for (const modelo of GEMINI_MODELOS) {
+    const resp = await fetch(`${GEMINI_API_URL}/v1beta/models/${modelo}:generateContent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': chave },
+      body: corpo,
+      signal: AbortSignal.timeout(60000),
+    });
+    status = resp.status;
+    if (status === 429 || status >= 500) continue; // sobrecarga: tenta o reserva
+    if (!resp.ok) break;
+    const dados = await resp.json();
+    const partes = (((dados.candidates || [])[0] || {}).content || {}).parts || [];
+    return partes.map((p) => p.text || '').join('').trim();
+  }
+  throw new Error(`Gemini respondeu ${status}`);
+}
+
+async function receberAudio(chatId, arquivo) {
+  if (tarefa) {
+    await bot.sendMessage(chatId, 'Ja tem uma tarefa rodando. Espere o resultado ou use /parar.');
+    return;
+  }
+  if (arquivo.file_size > AUDIO_MAX_BYTES) {
+    await bot.sendMessage(chatId, 'Audio grande demais (limite 15 MB). Mande um mais curto.');
+    return;
+  }
+  await bot.sendMessage(chatId, 'Ouvindo o audio...');
+  let texto;
+  try {
+    const resp = await fetch(await bot.getFileLink(arquivo.file_id));
+    if (!resp.ok) throw new Error(`download ${resp.status}`);
+    if (Number(resp.headers.get('content-length')) > AUDIO_MAX_BYTES) throw new Error('audio grande demais');
+    const audio = Buffer.from(await resp.arrayBuffer());
+    if (audio.length > AUDIO_MAX_BYTES) throw new Error('audio grande demais');
+    texto = await transcrever(audio, arquivo.mime_type || 'audio/ogg');
+  } catch (err) {
+    // So o motivo curto: nunca o endereco do arquivo (tem o token do bot) nem a chave.
+    console.error('transcricao falhou:', err.message.replace(/bot\d+:[\w-]+/g, 'bot***'));
+    await bot.sendMessage(chatId, 'Nao consegui transcrever o audio. Tente de novo ou mande em texto.');
+    return;
+  }
+  if (!texto) {
+    await bot.sendMessage(chatId, 'Nao entendi nada no audio. Mande de novo ou em texto.');
+    return;
+  }
+  await bot.sendMessage(chatId, `Entendi: "${texto}"`);
+  await executarTarefa(chatId, texto);
+}
+
+// Pergunta no Telegram, com botoes, se o Claude pode fazer ESTA acao.
+function pedirAprovacao(ferramenta, entrada) {
+  return new Promise((resolve) => {
+    const id = String(++aprovacaoSeq);
+    const detalhe = JSON.stringify(entrada, null, 1);
+    // Nunca pedir aprovacao de algo que nao cabe inteiro na tela: o dono aprovaria sem ver tudo.
+    if (detalhe.length > 3500) {
+      bot
+        .sendMessage(ALLOWED_USER_ID, `O Claude pediu para usar ${ferramenta}, mas a acao e grande demais para mostrar inteira. Neguei por seguranca.`)
+        .catch(() => {});
+      resolve(false);
+      return;
+    }
+    const item = {};
+    const decidir = (aprovado) => {
+      if (aprovacoes.get(id) !== item) return;
+      aprovacoes.delete(id);
+      clearTimeout(item.timer);
+      resolve(aprovado);
+    };
+    item.decidir = decidir;
+    item.timer = setTimeout(() => {
+      decidir(false);
+      if (item.msgId) {
+        bot
+          .editMessageText(`${item.texto}\n\nExpirou: negado.`, { chat_id: ALLOWED_USER_ID, message_id: item.msgId })
+          .catch(() => {});
+      }
+    }, APROVACAO_EXPIRA_MS);
+    item.texto = `O Claude quer usar ${ferramenta}:\n${detalhe}`;
+    aprovacoes.set(id, item);
+    bot
+      .sendMessage(ALLOWED_USER_ID, item.texto, {
+        reply_markup: {
+          inline_keyboard: [[
+            { text: 'Aprovar', callback_data: `ok:${id}` },
+            { text: 'Negar', callback_data: `nao:${id}` },
+          ]],
+        },
+      })
+      .then((m) => (item.msgId = m.message_id))
+      .catch(() => decidir(false));
+  });
+}
+
+bot.on('callback_query', async (q) => {
+  // So o dono decide; o botao vale para uma unica acao e uma unica vez.
+  if (!q.from || q.from.id !== ALLOWED_USER_ID) return;
+  const [acao, id] = String(q.data || '').split(':');
+  const item = aprovacoes.get(id);
+  if (!item || (acao !== 'ok' && acao !== 'nao')) {
+    await bot.answerCallbackQuery(q.id, { text: 'Esse pedido ja foi decidido ou expirou.' }).catch(() => {});
+    return;
+  }
+  const aprovado = acao === 'ok';
+  item.decidir(aprovado);
+  await bot.answerCallbackQuery(q.id, { text: aprovado ? 'Aprovado' : 'Negado' }).catch(() => {});
+  if (q.message) {
+    await bot
+      .editMessageText(`${item.texto}\n\n${aprovado ? 'APROVADO por voce.' : 'NEGADO por voce.'}`, {
+        chat_id: q.message.chat.id,
+        message_id: q.message.message_id,
+      })
+      .catch(() => {});
+  }
+});
+
 bot.on('message', async (msg) => {
   // Trava 1: so o dono pode usar. Outros sao ignorados em silencio.
   if (!autorizado(msg)) return;
 
   const chatId = msg.chat.id;
+  if (msg.date < INICIO_SEG) {
+    await bot
+      .sendMessage(chatId, 'Ignorei uma mensagem enviada antes de eu ligar. Mande de novo se ainda quiser.')
+      .catch(() => {});
+    return;
+  }
   const texto = (msg.text || '').trim();
 
   // Durante um /login, a proxima mensagem que nao e comando e a credencial.
@@ -309,7 +611,39 @@ bot.on('message', async (msg) => {
     return;
   }
 
+  // Audio (mensagem de voz ou arquivo de audio) vira texto e depois tarefa.
+  const audio = msg.voice || msg.audio;
+  if (audio) {
+    if (login) {
+      await bot.sendMessage(chatId, 'Durante o /login mande usuario e senha em texto.');
+      return;
+    }
+    await receberAudio(chatId, audio).catch((err) =>
+      bot.sendMessage(chatId, `Nao consegui iniciar a tarefa: ${err.message}`).catch(() => {})
+    );
+    return;
+  }
+
+  // Texto livre (fora de um /login) vira tarefa para o Claude deste PC.
+  if (msg.text && !texto.startsWith('/')) {
+    await executarTarefa(chatId, texto).catch((err) =>
+      bot.sendMessage(chatId, `Nao consegui iniciar a tarefa: ${err.message}`).catch(() => {})
+    );
+    return;
+  }
+
   try {
+    if (texto === '/parar') {
+      if (!tarefa) {
+        await bot.sendMessage(chatId, 'Nenhuma tarefa rodando.');
+        return;
+      }
+      tarefa.motivo = 'parada por voce';
+      pararProcesso(tarefa.proc, chatId);
+      await bot.sendMessage(chatId, 'Parando a tarefa...');
+      return;
+    }
+
     if (texto === '/start' || texto === '/help') {
       await bot.sendMessage(chatId, AJUDA);
       return;
@@ -414,6 +748,33 @@ const servidor = http.createServer((req, res) => {
     return;
   }
 
+  // Usado so pelo porteiro aprovacao-mcp.js que o bot abriu (exige o segredo).
+  if (req.method === 'POST' && req.url === '/pedir-aprovacao') {
+    const segredo = Buffer.from(String(req.headers['x-segredo'] || ''));
+    const esperado = Buffer.from(SEGREDO_APROVACAO);
+    if (segredo.length !== esperado.length || !crypto.timingSafeEqual(segredo, esperado)) {
+      responder(res, 403, { erro: 'proibido' });
+      return;
+    }
+    let corpo = '';
+    req.on('data', (parte) => {
+      corpo += parte;
+      if (corpo.length > 100000) req.destroy();
+    });
+    req.on('end', async () => {
+      let dados;
+      try {
+        dados = JSON.parse(corpo);
+      } catch {
+        responder(res, 400, { erro: 'JSON invalido' });
+        return;
+      }
+      const aprovado = await pedirAprovacao(String(dados.ferramenta || '?'), dados.entrada || {});
+      responder(res, 200, { aprovado });
+    });
+    return;
+  }
+
   if (req.method === 'POST' && req.url === '/pedir-login') {
     if (!String(req.headers['content-type'] || '').startsWith('application/json')) {
       responder(res, 415, { erro: 'use Content-Type: application/json' });
@@ -463,6 +824,9 @@ const servidor = http.createServer((req, res) => {
 
   responder(res, 404, { erro: 'rota desconhecida' });
 });
+
+// Pedido de aprovacao espera ate 5 min pela sua resposta: nao corta antes.
+servidor.requestTimeout = APROVACAO_EXPIRA_MS + 60 * 1000;
 
 if (CONTROLE_PORTA > 0) {
   servidor.listen(CONTROLE_PORTA, '127.0.0.1', () => {

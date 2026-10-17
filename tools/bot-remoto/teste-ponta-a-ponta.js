@@ -37,10 +37,65 @@ function mandarAoBot(deQuem, texto) {
   const id = proximaMsg++;
   fila.push({
     update_id: proximoUpdate++,
-    message: { message_id: id, from: { id: deQuem }, chat: { id: deQuem, type: 'private' }, date: 0, text: texto },
+    message: { message_id: id, from: { id: deQuem }, chat: { id: deQuem, type: 'private' }, date: Math.floor(Date.now() / 1000), text: texto },
   });
   return id;
 }
+
+const AUDIO_FALSO = Buffer.from('OggS-audio-de-teste');
+const gemini = []; // pedidos que chegaram ao Gemini falso
+
+function mandarAudio(deQuem) {
+  fila.push({
+    update_id: proximoUpdate++,
+    message: {
+      message_id: proximaMsg++, from: { id: deQuem }, chat: { id: deQuem, type: 'private' },
+      date: Math.floor(Date.now() / 1000),
+      voice: { file_id: 'voz1', duration: 3, mime_type: 'audio/ogg', file_size: AUDIO_FALSO.length },
+    },
+  });
+}
+
+function apertarBotao(deQuem, dados) {
+  fila.push({
+    update_id: proximoUpdate++,
+    callback_query: {
+      id: `cb${proximoUpdate}`,
+      from: { id: deQuem },
+      message: { message_id: 1, chat: { id: deQuem, type: 'private' }, date: 0 },
+      data: dados,
+    },
+  });
+}
+
+// Claude falso: pede aprovacao ao porteiro (MCP de verdade) para criar o
+// arquivo citado no pedido e so cria se aprovado.
+const AGENTE_FALSO = `
+const fs = require('fs'); const { spawn } = require('child_process');
+let pedido = ''; process.stdin.on('data', (p) => (pedido += p));
+process.stdin.on('end', () => {
+  const a = process.argv; const cfg = JSON.parse(fs.readFileSync(a[a.indexOf('--mcp-config') + 1], 'utf8'));
+  const s = cfg.mcpServers.aprovacao;
+  const mcp = spawn(s.command, s.args, { env: { ...process.env, ...s.env } });
+  const arquivo = (/(\\S+\\.txt)/.exec(pedido) || [])[1];
+  let buf = '';
+  mcp.stdout.on('data', (p) => {
+    buf += p; let i;
+    while ((i = buf.indexOf('\\n')) >= 0) {
+      const m = JSON.parse(buf.slice(0, i)); buf = buf.slice(i + 1);
+      if (m.id === 1) mcp.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/call',
+        params: { name: 'pedir', arguments: { tool_name: 'Bash', input: { command: 'criar ' + arquivo } } } }) + '\\n');
+      if (m.id === 2) {
+        const d = JSON.parse(m.result.content[0].text); mcp.kill();
+        if (d.behavior === 'allow') fs.writeFileSync(arquivo, 'Comando recebido pelo Telegram');
+        console.log(JSON.stringify({ type: 'result', is_error: false,
+          result: d.behavior === 'allow' ? 'Criei ' + arquivo : 'Nao criei ' + arquivo,
+          permission_denials: d.behavior === 'allow' ? [] : [{ tool_name: 'Bash' }] }));
+      }
+    }
+  });
+  mcp.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} }) + '\\n');
+});`;
 
 function pngDe(corpo) {
   const ini = corpo.indexOf(Buffer.from([0x89, 0x50, 0x4e, 0x47]));
@@ -61,7 +116,23 @@ const telegram = http.createServer((req, res) => {
       ? { ...Object.fromEntries(new URLSearchParams(query)), foto: pngDe(corpo) }
       : Object.fromEntries(new URLSearchParams(corpo.toString()));
     let result = true;
-    if (metodo === 'getUpdates') {
+    // Download do audio (arquivo do Telegram) e Gemini falso.
+    if (rota.endsWith('/voz/audio.ogg')) {
+      res.writeHead(200, { 'Content-Type': 'audio/ogg' });
+      res.end(AUDIO_FALSO);
+      return;
+    }
+    if (metodo.endsWith(':generateContent')) {
+      const pedido = JSON.parse(corpo.toString());
+      const parte = pedido.contents[0].parts.find((p) => p.inline_data) || {};
+      gemini.push({ chave: req.headers['x-goog-api-key'], tipo: (parte.inline_data || {}).mime_type, dados: (parte.inline_data || {}).data });
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'Crie o arquivo audio-teste.txt' }] } }] }));
+      return;
+    }
+    if (metodo === 'getFile') {
+      result = { file_id: dados.file_id, file_path: 'voz/audio.ogg' };
+    } else if (metodo === 'getUpdates') {
       const offset = Number(dados.offset || 0);
       result = fila.filter((u) => u.update_id >= offset);
     } else {
@@ -126,13 +197,21 @@ async function main() {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bot-remoto-teste-'));
   fs.copyFileSync(path.join(__dirname, 'bot_remoto.js'), path.join(tmp, 'bot_remoto.js'));
   fs.copyFileSync(path.join(__dirname, 'sistemas.json'), path.join(tmp, 'sistemas.json'));
+  fs.copyFileSync(path.join(__dirname, 'aprovacao-mcp.js'), path.join(tmp, 'aprovacao-mcp.js'));
+  fs.writeFileSync(path.join(tmp, 'agente-falso.js'), AGENTE_FALSO);
+  const tarefasDir = path.join(tmp, 'tarefas');
   // Aponta a biblioteca do Telegram para o Telegram falso.
   fs.writeFileSync(
     path.join(tmp, 'telegram-falso.js'),
     `const M = require('module'); const real = require('node-telegram-bot-api');
      class Falso extends real { constructor(t, o) { super(t, { ...o, baseApiUrl: ${JSON.stringify(apiUrl)} }); } }
-     const load = M._load; M._load = function (p, ...r) { return p === 'node-telegram-bot-api' ? Falso : load.call(this, p, ...r); };`
+     const load = M._load; M._load = function (p, ...r) { return p === 'node-telegram-bot-api' ? Falso : load.call(this, p, ...r); };
+     const cp = require('child_process'); const sp = cp.spawn;
+     cp.spawn = (c, a, o) => c === 'claude-falso' ? sp(process.execPath, [require('path').join(__dirname, 'agente-falso.js'), ...a], o) : sp(c, a, o);`
   );
+
+  // Ordem antiga parada na fila do Telegram (enviada com o bot fora do ar).
+  fila.push({ update_id: proximoUpdate++, message: { message_id: 1, from: { id: DONO }, chat: { id: DONO, type: 'private' }, date: Math.floor(Date.now() / 1000) - 600, text: 'Crie o arquivo ordem-antiga.txt' } });
 
   let saida = '';
   const bot = spawn(process.execPath, ['-r', './telegram-falso.js', 'bot_remoto.js'], {
@@ -145,6 +224,10 @@ async function main() {
       HEADLESS: 'true',
       CONTROLE_PORTA: String(PORTA_CONTROLE),
       CDP_PORTA: '0',
+      CLAUDE_EXE: 'claude-falso',
+      GEMINI_API_URL: apiUrl,
+      GEMINI_API_KEY: 'CHAVE-FALSA-DE-TESTE',
+      TAREFAS_DIR: tarefasDir,
     },
   });
   filhos.push(bot);
@@ -160,6 +243,9 @@ async function main() {
     }
     confere('bot ligou e a porta de controle responde', estado && estado.json.estado === 'nenhum');
 
+    // 1b. Trava: ordem antiga da fila nao vira tarefa.
+    confere('mensagem antiga da fila e ignorada', !!(await esperarChamada(0, (c) => /Ignorei uma mensagem enviada antes/.test(c.text || ''))) && !chamadas.some((c) => /^Recebi\./.test(c.text || '')));
+
     // 2. Trava: pagina web (com Origin) nao consegue usar a porta de controle.
     const web = await controle('GET', '/estado', null, { Origin: 'https://site-malicioso.com' });
     confere('porta de controle recusa chamada vinda de site', web.status === 403);
@@ -169,6 +255,12 @@ async function main() {
     mandarAoBot(INTRUSO, '/sistemas');
     await espera(2000);
     confere('bot ignora quem nao e o dono', chamadas.slice(n).length === 0);
+
+    // 3b. Trava: o dono escrevendo num grupo e ignorado (la a senha do /login ficaria visivel).
+    n = chamadas.length;
+    fila.push({ update_id: proximoUpdate++, message: { message_id: proximaMsg++, from: { id: DONO }, chat: { id: -500, type: 'group' }, date: Math.floor(Date.now() / 1000), text: '/sistemas' } });
+    await espera(2000);
+    confere('bot ignora o dono em grupo', chamadas.slice(n).length === 0);
 
     // 4. Trava: site fora da whitelist.
     n = chamadas.length;
@@ -218,7 +310,73 @@ async function main() {
     confere('/status manda print', !!(status && status.foto), status ? status.caption : '');
     if (status && status.foto) fs.writeFileSync(path.join(PROVA_DIR, '2-status.png'), status.foto);
 
-    // 9. A senha nao vazou em nenhum lugar.
+    // 9. Tarefa livre com aprovacao: texto -> Claude -> botao -> resultado.
+    const semSegredo = await controle('POST', '/pedir-aprovacao', '{}', { 'Content-Type': 'application/json' });
+    confere('porteiro recusa pedido sem o segredo', semSegredo.status === 403);
+
+    n = chamadas.length;
+    mandarAoBot(DONO, 'Crie o arquivo teste-telegram.txt com o conteudo "Comando recebido pelo Telegram"');
+    confere('texto livre vira tarefa (bot confirma)', !!(await esperarChamada(n, (c) => /^Recebi\./.test(c.text || ''))));
+    const pergunta = await esperarChamada(n, (c) => /quer usar Bash/.test(c.text || '') && c.reply_markup);
+    const idAprov = pergunta && (/"ok:(\d+)"/.exec(pergunta.reply_markup) || [])[1];
+    confere('pedido de aprovacao chega com botoes', !!idAprov, pergunta ? pergunta.text.split('\n')[0] : '');
+
+    n = chamadas.length;
+    apertarBotao(INTRUSO, `ok:${idAprov}`);
+    await espera(1500);
+    confere('botao de estranho e ignorado', chamadas.slice(n).length === 0);
+
+    apertarBotao(DONO, `ok:${idAprov}`);
+    const pronto = await esperarChamada(n, (c) => /^Pronto:/.test(c.text || ''));
+    confere('resultado volta ao Telegram', !!pronto, pronto ? pronto.text.replace(/\n/g, ' ') : '');
+    const criado = path.join(tarefasDir, 'teste-telegram.txt');
+    const conteudo = fs.existsSync(criado) ? fs.readFileSync(criado, 'utf8') : '';
+    confere('arquivo criado com o conteudo pedido', conteudo === 'Comando recebido pelo Telegram', conteudo);
+
+    n = chamadas.length;
+    apertarBotao(DONO, `ok:${idAprov}`);
+    confere(
+      'botao ja usado nao vale de novo',
+      !!(await esperarChamada(n, (c) => c.metodo === 'answerCallbackQuery' && /ja foi decidido/.test(c.text || '')))
+    );
+
+    n = chamadas.length;
+    mandarAoBot(DONO, 'Crie o arquivo teste-negado.txt');
+    const pergunta2 = await esperarChamada(n, (c) => /quer usar Bash/.test(c.text || '') && c.reply_markup);
+    const idAprov2 = pergunta2 && (/"nao:(\d+)"/.exec(pergunta2.reply_markup) || [])[1];
+    apertarBotao(DONO, `nao:${idAprov2}`);
+    const negado = await esperarChamada(n, (c) => /^Pronto:/.test(c.text || ''));
+    confere(
+      'negar impede a acao e o resultado avisa',
+      !!negado && /negada/.test(negado.text) && !fs.existsSync(path.join(tarefasDir, 'teste-negado.txt')),
+      negado ? negado.text.replace(/\n/g, ' ') : ''
+    );
+
+    // 10. Audio: Telegram -> Gemini -> "Entendi" -> tarefa -> botao -> arquivo.
+    n = chamadas.length;
+    mandarAudio(DONO);
+    const entendi = await esperarChamada(n, (c) => /^Entendi:/.test(c.text || ''));
+    confere('audio transcrito e mostrado', !!entendi, entendi ? entendi.text : '');
+    const g = gemini[0] || {};
+    confere(
+      'audio foi ao Gemini com a chave, tipo e conteudo certos',
+      g.chave === 'CHAVE-FALSA-DE-TESTE' && g.tipo === 'audio/ogg' && Buffer.from(g.dados || '', 'base64').equals(AUDIO_FALSO)
+    );
+    const pergunta3 = await esperarChamada(n, (c) => /quer usar Bash/.test(c.text || '') && c.reply_markup);
+    const idAprov3 = pergunta3 && (/"ok:(\d+)"/.exec(pergunta3.reply_markup) || [])[1];
+    apertarBotao(DONO, `ok:${idAprov3}`);
+    const pronto3 = await esperarChamada(n, (c) => /^Pronto:/.test(c.text || ''));
+    confere(
+      'audio vira tarefa e o arquivo e criado',
+      !!pronto3 && fs.existsSync(path.join(tarefasDir, 'audio-teste.txt')),
+      pronto3 ? pronto3.text.replace(/\n/g, ' ') : ''
+    );
+    n = chamadas.length;
+    mandarAudio(INTRUSO);
+    await espera(1500);
+    confere('audio de estranho e ignorado', chamadas.slice(n).length === 0 && gemini.length === 1);
+
+    // 11. A senha nao vazou em nenhum lugar.
     const tudoQueSaiu = JSON.stringify(chamadas.map(({ foto: _f, ...c }) => c));
     confere('senha nunca foi mandada de volta ao Telegram', !tudoQueSaiu.includes(SENHA));
     confere('senha nao aparece no log do bot', !saida.includes(SENHA));

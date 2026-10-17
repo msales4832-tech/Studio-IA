@@ -57,6 +57,29 @@ conexões deste PC. Mude ou desligue (`0`) em `CONTROLE_PORTA` e `CDP_PORTA`.
 Se o site tiver campos de login fora do padrão, informe os seletores em
 `sistemas.json`: `"seletores": { "usuario": "#login", "senha": "#pass" }`.
 
+## Tarefas livres para o Claude deste PC
+
+Mande qualquer texto (sem `/`) e ele vira um pedido para o `claude.exe` deste
+PC. O resultado volta no próprio Telegram. `/parar` cancela.
+
+- O Claude trabalha só na pasta `TAREFAS_DIR` (padrão `~/bot-remoto-tarefas`):
+  pode criar e editar arquivos lá dentro sem perguntar.
+- Qualquer outra coisa (comando no PC, internet, arquivo fora da pasta) chega
+  para você com os botões **Aprovar** / **Negar**. Cada botão vale para aquela
+  ação, uma única vez; sem resposta em 5 minutos, é negado.
+- Não usa as permissões amplas das suas configurações (`--setting-sources
+  project`), e o Claude não pode mudar as próprias regras (`.claude/`).
+- **Áudio:** mande uma mensagem de voz. O bot transcreve com o Gemini
+  (`gemini-3.5-flash`, reserva `gemini-flash-lite-latest`), responde
+  "Entendi: ..." e trata como texto. **O áudio vai para o Google.** A chave é
+  `GEMINI_API_KEY` no `.env` ou, se faltar, a da skill watch
+  (`~/.config/watch/.env`).
+- Mensagens enviadas enquanto o bot estava desligado são ignoradas ao religar.
+- Erros que derrubem o bot ficam em `bot-erros.log`.
+- Para ligar: dois cliques em `LIGAR-BOT.bat` (não como administrador).
+- Precisa do `claude.exe` logado uma vez (`claude auth login`) e da
+  `CONTROLE_PORTA` ligada (o porteiro `aprovacao-mcp.js` usa essa porta).
+
 ## Teste automático (sem celular)
 
 `npm test` roda o bot de verdade contra um Telegram falso local e a
