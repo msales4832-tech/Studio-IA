@@ -1,0 +1,47 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+@font-face{font-family:Modak;src:url(Modak-Regular.ttf)}
+@font-face{font-family:YT;src:url(Yellowtail-Regular.ttf)}
+@font-face{font-family:CG;src:url(CormorantGaramond-Italic.ttf);font-weight:300 700}
+html,body{margin:0;background:transparent}
+svg text{font-kerning:normal}
+.m{font-family:Modak}.y{font-family:YT}.c{font-family:CG;font-weight:600}
+</style></head><body><div id="a"></div><script>
+const R='#c8102e',N='#13294b',W='#fff';
+const id=new URLSearchParams(location.search).get('id');
+// ln = contorno branco por baixo (efeito "adesivo") para sobrepor palavras
+const T=(x,y,s,t,cls,fill,o={})=>`<text x="${x}" y="${y}" class="${cls}" font-size="${s}" text-anchor="middle" fill="${fill}" ${o.ls?`letter-spacing="${o.ls}"`:''} ${o.rot?`transform="rotate(${o.rot} ${x} ${y})"`:''} ${o.ln?`stroke="${o.ln}" stroke-width="${o.lw||s/9}" paint-order="stroke" stroke-linejoin="round"`:''} data-w="${o.w||0}">${t}</text>`;
+const A={
+// V1 costas: bolhas + cursiva sobreposta + versículo
+'v1b':[1400,1500,
+ T(700,330,330,'LÂMPADA','m',R,{w:1340})+
+ T(700,520,250,'para os meus','y',N,{rot:-7,ln:W,lw:34,w:1000})+
+ T(700,860,400,'PÉS','m',R,{w:900})+
+ T(700,1080,74,'“Lâmpada para os meus pés é tua palavra,','c',N,{w:1300})+
+ T(700,1175,74,'e luz para o meu caminho.”','c',N,{w:1300})+
+ T(700,1320,58,'SALMOS 119:105','m',R,{ls:14,w:700})],
+'v1f':[600,260,T(300,180,170,'Salmos 119:105','y',R,{rot:-6,w:580})],
+// V2 frente: cursiva varsity com rabicho (como camisa de time)
+'v2f':[1500,980,
+ `<path d="M250,598 C700,650 1120,560 1440,380 C1170,612 720,676 250,616 Z" fill="${R}" stroke="${N}" stroke-width="8" stroke-linejoin="round"/>`+
+ T(740,500,440,'Lâmpada','y',R,{rot:-8,ln:N,lw:16,w:1400})+
+ T(800,800,150,'PARA OS MEUS PÉS','m',N,{w:1000})],
+'v2b':[1400,900,
+ T(700,280,250,'e luz para','y',R,{rot:-5,w:1150})+
+ T(700,560,250,'o meu caminho','y',R,{rot:-5,w:1300})+
+ T(700,760,64,'SALMOS 119:105','c',N,{ls:22,w:900})],
+// V3 costas: bloco editorial (versículo inteiro em camadas)
+'v3b':[1400,1520,
+ T(700,120,60,'SALMOS 119 · 105','c',N,{ls:26,w:900})+
+ T(700,420,330,'Lâmpada','y',R,{rot:-6,w:1250})+
+ T(700,600,150,'PARA OS MEUS PÉS','m',N,{w:1250})+
+ T(700,760,96,'é tua palavra,','c',N,{w:900})+
+ T(700,960,190,'e luz','y',R,{rot:-6,w:800})+
+ T(700,1130,150,'PARA O MEU','m',N,{w:1050})+
+ T(700,1420,300,'CAMINHO','m',R,{w:1340})],
+'v3f':[600,300,T(300,150,200,'LUZ','m',R,{w:420})+T(300,250,52,'SALMOS 119:105','c',N,{ls:10,w:560})],
+};
+const [w,h,body]=A[id];
+document.getElementById('a').innerHTML=`<svg id="s" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${body}</svg>`;
+document.fonts.ready.then(()=>{document.querySelectorAll('text[data-w]').forEach(t=>{const mw=+t.dataset.w;if(!mw)return;
+ const L=t.getComputedTextLength(),fs=+t.getAttribute('font-size');if(L>mw){t.setAttribute('font-size',fs*mw/L);}});document.body.dataset.ok=1;});
+</script></body></html>

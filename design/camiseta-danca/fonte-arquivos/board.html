@@ -1,0 +1,25 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><style>
+@font-face{font-family:Modak;src:url(Modak-Regular.ttf)}@font-face{font-family:YT;src:url(Yellowtail-Regular.ttf)}@font-face{font-family:CG;src:url(CormorantGaramond-Italic.ttf)}
+body{margin:0;background:#f5f1ea}
+#c{width:1600px;padding:44px 52px 34px;box-sizing:border-box;font-family:Arial,sans-serif;color:#13294b}
+.hd{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #13294b;padding-bottom:12px}
+.n{font:400 22px Arial;letter-spacing:6px;color:#c8102e}
+h1{margin:4px 0 0;font:400 64px YT;color:#c8102e;line-height:1}
+.tg{font:600 13px Arial;letter-spacing:4px;text-align:right;line-height:1.8}
+p{font:22px/1.45 CG,serif;margin:14px 0 18px;color:#222;max-width:1450px}
+.ph{display:flex;gap:24px}
+.ph div{flex:1;text-align:center}.ph img{width:100%;height:860px;object-fit:cover;border-radius:6px;display:block}
+.lb{font:700 13px Arial;letter-spacing:5px;margin-top:10px}
+.ft{display:flex;justify-content:space-between;margin-top:20px;border-top:1px solid #cbbfae;padding-top:12px;font:14px Arial;color:#444}
+.ft span.c{display:inline-block;width:13px;height:13px;border-radius:50%;vertical-align:-2px;margin:0 5px 0 14px}
+</style></head><body><div id="c"></div><script>
+const D={
+v1:['MODELO 01','Bolhas nas costas','Inspirado na camisa “Dance for Jesus”: frente limpa só com a referência em letra cursiva no peito; nas costas, palavras gordinhas com a cursiva azul “colada” por cima e o versículo completo em letra elegante.','Modak + Yellowtail + Cormorant'],
+v2:['MODELO 02','Script de time','Inspirado na blusa Wildcats: “Lâmpada” em letra cursiva de time de beisebol atravessando o peito, com rabicho embaixo; nas costas, a segunda metade do versículo em cursiva, na altura dos ombros.','Yellowtail + Modak + Cormorant'],
+v3:['MODELO 03','Editorial','Frente minimalista (“LUZ” + referência no peito). Nas costas, o versículo inteiro montado em camadas, alternando letra cursiva, letra gordinha e itálico — o estilo de pôster tipográfico usado por marcas cristãs.','Yellowtail + Modak + Cormorant']};
+const v=new URLSearchParams(location.search).get('v'),d=D[v];
+document.getElementById('c').innerHTML=`<div class="hd"><div><div class="n">${d[0]}</div><h1>${d[1]}</h1></div><div class="tg">MINISTÉRIO DE DANÇA<br>SALMOS 119:105</div></div><p>${d[2]}</p>
+<div class="ph"><div><img src="m_${v}f.jpg"><div class="lb">FRENTE</div></div><div><img src="m_${v}b.jpg"><div class="lb">COSTAS</div></div></div>
+<div class="ft"><div>Fontes: ${d[3]} (gratuitas, uso comercial liberado) · Costas ~28×33 cm, 5 cm abaixo da gola · Peito ~9 cm</div><div><span class="c" style="background:#c8102e"></span>Vermelho<span class="c" style="background:#13294b"></span>Azul-marinho<span class="c" style="background:#fff;border:1px solid #bbb"></span>Branco</div></div>`;
+Promise.all([...document.images].map(i=>i.decode())).then(()=>document.fonts.ready).then(()=>document.body.dataset.ok=1);
+</script></body></html>
